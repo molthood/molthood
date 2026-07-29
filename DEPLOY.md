@@ -4,12 +4,14 @@
 
 | What | Where |
 | --- | --- |
-| Console | https://molthood-three.vercel.app |
-| API | https://molthood-api-production.up.railway.app |
+| Site | https://molthood.org |
+| Console | https://console.molthood.org |
+| API | https://api.molthood.org |
+| Docs | https://molthood.org/docs (docs.molthood.org redirects here) |
 | Repo | https://github.com/molthood/molthood (private) |
 
-Two things still need a browser and cannot be done from a CLI — see
-[Connecting GitHub](#connecting-github) at the end.
+The domain is connected end to end. What still needs a browser is the GitHub
+connection — see [Connecting GitHub](#connecting-github) at the end.
 
 ---
 
