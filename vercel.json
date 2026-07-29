@@ -2,5 +2,19 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "buildCommand": "next build",
-  "installCommand": "npm ci"
+  "installCommand": "npm ci",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "console.molthood.org" }],
+      "destination": "https://molthood.org/console/:path*",
+      "permanent": false
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "docs.molthood.org" }],
+      "destination": "https://molthood.org/docs/:path*",
+      "permanent": false
+    }
+  ]
 }
