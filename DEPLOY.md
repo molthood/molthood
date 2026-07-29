@@ -184,6 +184,30 @@ without their hostname in `CORS_ORIGINS`.
 
 ---
 
+## The commit author has to be an address Vercel can resolve
+
+Vercel refuses to build a commit whose author email it cannot identify, and
+reports it as `Blocked Latest` — no logs, no build, no reason surfaced through
+the CLI. Four deploys were lost to this before the dashboard explained it.
+
+GitHub's `ID+user@users.noreply.github.com` form is exactly what triggers it.
+It is the right default for keeping a personal address out of a public history,
+and it is the wrong one here: Vercel cannot map it to an account.
+
+The repo is configured with `molthood@gmail.com` — a project address rather
+than anyone's personal one, which keeps the original point intact:
+
+```bash
+git config --local user.email "molthood@gmail.com"
+```
+
+Local to this repository, so other work on the same machine keeps its own
+identity. If the author is ever changed again, check `vercel ls` after the
+next deploy rather than assuming it worked — a blocked deployment looks
+identical to a slow one from the command line.
+
+---
+
 ## What is not covered
 
 Honest gaps, so nothing here reads as more finished than it is:
