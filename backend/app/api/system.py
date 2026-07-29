@@ -121,20 +121,28 @@ def _scrub_credentials(message: str) -> str:
 
 
 def _database_health() -> dict[str, Any]:
-    """Whether storage is actually answering, and which kind it is.
+    """Whether storage can actually be *used*, and which kind it is.
 
-    Startup already tolerates a missing database — an analysis works without
+    Startup tolerates a missing database on purpose — an analysis works without
     one, and refusing to boot would trade a partial service for none. The cost
     is that a misconfigured deployment serves traffic and stores nothing, which
-    is invisible from the outside. This is where it becomes visible.
+    is invisible from outside. This is where it becomes visible.
 
-    The credentials never appear: only the dialect, which is what an operator
-    is checking anyway ("did it actually pick up Postgres, or is it writing to
-    a SQLite file that dies with the container?").
+    Connectivity is checked *and so is the schema*, because they fail
+    separately and the difference is the whole diagnosis. On the first real
+    deployment `create_schema()` was rejected by PostgreSQL and not one table
+    was created — while `SELECT 1` answered perfectly. Reporting that as
+    healthy is the same error this codebase exists to refuse: a check that
+    could not run rendered as a check that came back clean.
+
+    Credentials never appear here; only the dialect, which is what an operator
+    is checking anyway ("did it pick up Postgres, or is it writing to a SQLite
+    file that dies with the container?").
     """
-    from sqlalchemy import text
+    from sqlalchemy import inspect, text
 
     from app.core.database import get_engine
+    from app.models.base import Base
 
     try:
         engine = get_engine()
@@ -143,6 +151,8 @@ def _database_health() -> dict[str, Any]:
     except Exception as exc:
         return {
             "reachable": False,
+            "tables": None,
+            "missing_tables": None,
             "dialect": None,
             "detail": _scrub_credentials(f"{type(exc).__name__}: {exc}"),
             "ephemeral": None,
@@ -150,13 +160,33 @@ def _database_health() -> dict[str, Any]:
 
     dialect = engine.dialect.name
 
+    detail: str | None = None
+    try:
+        present = set(inspect(engine).get_table_names())
+    except Exception as exc:
+        present = set()
+        detail = _scrub_credentials(f"{type(exc).__name__}: {exc}")
+
+    expected = {table.name for table in Base.metadata.sorted_tables}
+    missing = sorted(expected - present)
+
+    if missing and detail is None:
+        detail = (
+            f"{len(missing)} table(s) the models declare do not exist. "
+            "Schema creation failed at startup; check the logs for "
+            "`database_unavailable`."
+        )
+
     return {
-        "reachable": True,
+        # Connected but schema-less is not usable, and must not read as ok.
+        "reachable": not missing and detail is None,
+        "tables": len(present),
+        "missing_tables": missing,
         "dialect": dialect,
-        "detail": None,
+        "detail": detail,
         # SQLite on a container filesystem loses every execution, key, and
-        # watch on the next deploy. It works, so nothing errors — it just
-        # quietly forgets, which is worth saying out loud.
+        # watch on the next deploy. Nothing errors — it just forgets, which is
+        # worth saying out loud.
         "ephemeral": dialect == "sqlite",
     }
 

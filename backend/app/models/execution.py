@@ -13,7 +13,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
-    text,
+    false,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -76,8 +76,14 @@ class Execution(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     #: `server_default` as well as `default`: the Python default only applies
     #: to rows this application inserts, so an `ALTER TABLE ... ADD COLUMN`
     #: against 91 existing rows had nothing to put in them and was refused.
+    #:
+    #: `false()` and not `text("0")`. SQLite has no boolean type and accepts the
+    #: integer happily; PostgreSQL rejects the whole `CREATE TABLE` with "column
+    #: is of type boolean but default expression is of type integer". That took
+    #: down schema creation on the first real deployment — every table, not just
+    #: this one — while the process started and served health checks normally.
     public: Mapped[bool] = mapped_column(
-        Boolean, default=False, server_default=text("0"), nullable=False, index=True
+        Boolean, default=False, server_default=false(), nullable=False, index=True
     )
     published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

@@ -469,9 +469,43 @@ def test_health_says_which_storage_is_actually_answering(
 
     assert database["reachable"] is True
     assert database["dialect"] == "sqlite"
+    assert database["missing_tables"] == []
+    assert database["tables"] > 0
     # SQLite on a container filesystem dies with the container. It errors
     # nowhere; it just forgets.
     assert database["ephemeral"] is True
+
+
+def test_a_connected_but_schemaless_database_is_not_reachable(
+    anonymous_client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """`SELECT 1` succeeding is not the same as storage working.
+
+    On the first real deployment `create_schema()` was rejected by PostgreSQL
+    and not one table existed, while connectivity was perfect. Reporting that
+    as healthy is the exact failure this codebase refuses everywhere else.
+    """
+    import sqlalchemy
+
+    from app.api import system
+
+    real_inspect = sqlalchemy.inspect
+
+    class _Empty:
+        def get_table_names(self) -> list[str]:
+            return []
+
+    monkeypatch.setattr(
+        sqlalchemy,
+        "inspect",
+        lambda target: _Empty() if hasattr(target, "dialect") else real_inspect(target),
+    )
+
+    database = system._database_health()
+
+    assert database["reachable"] is False
+    assert "executions" in database["missing_tables"]
+    assert "Schema creation failed" in database["detail"]
 
 
 def test_an_unreachable_database_degrades_the_platform(
