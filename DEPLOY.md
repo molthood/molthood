@@ -173,19 +173,22 @@ railway service source connect --repo molthood/molthood --branch main --service 
 It prints nothing on success — check `source.repo` rather than the output.
 `rootDirectory` survives the round trip and stays `/backend`.
 
-**Vercel is not connected.** The account was created with an email address and
-has no GitHub login connection, which `vercel git connect` refuses on:
+**Vercel is connected.** A push to `main` builds and deploys the console.
 
-```
-You need to add a Login Connection to your GitHub account first. (400)
-```
+It took two separate grants, and the error message only ever named one at a
+time — worth knowing if it is ever set up again:
 
-Fix it under Vercel account settings → Login Connections → GitHub, then run
-`vercel git connect`. Until then the console deploys by upload:
+1. **Login Connection** — Vercel needs to know which GitHub account is yours.
+   Account settings (not team settings) → Login Connections → GitHub. Missing
+   this gives `You need to add a Login Connection to your GitHub account
+   first. (400)`.
+2. **GitHub App access** — Vercel needs permission to read *this* repository,
+   which is private. https://github.com/apps/vercel/installations/new, with
+   `molthood/molthood` selected. Missing this gives `Failed to connect… make
+   sure you have access to the repository if it's private`.
 
-```bash
-vercel --prod --yes
-```
+Unlike Railway, `vercel --prod` does **not** detach the connection, so a manual
+deploy is safe to run at any time.
 
 One smaller gap: `NEXT_PUBLIC_API_URL` is set for Production and Development
 but not Preview — the CLI asks for a Git branch and will not accept "all
