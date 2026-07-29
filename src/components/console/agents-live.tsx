@@ -271,7 +271,7 @@ function AgentDetail({
           </Button>
           {shown.implemented ? (
             <Button asChild>
-              <Link href="/console/executions">Run an analysis</Link>
+              <Link href="/executions">Run an analysis</Link>
             </Button>
           ) : null}
         </DrawerFooter>

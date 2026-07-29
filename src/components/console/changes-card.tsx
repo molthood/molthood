@@ -80,7 +80,7 @@ function ChangesCard({
           </span>
         </span>
         <Link
-          href={`/console/executions/${report.previous_execution_id}`}
+          href={`/executions/${report.previous_execution_id}`}
           className="font-mono text-[10px] font-bold text-muted underline-offset-4 hover:text-foreground hover:underline"
         >
           compared with {since}

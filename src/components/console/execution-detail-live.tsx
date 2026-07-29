@@ -41,7 +41,7 @@ function ExecutionDetailLive({ executionId }: { executionId: string }) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button asChild variant="secondary" size="sm">
-          <Link href="/console/executions">
+          <Link href="/executions">
             <ArrowLeft aria-hidden="true" />
             All executions
           </Link>

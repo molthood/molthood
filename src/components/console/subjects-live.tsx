@@ -87,7 +87,7 @@ function SubjectsLive() {
           description="Every subject you analyse is grouped here automatically — no setting up required. Run something and it appears, with its latest score and whatever changed since the run before."
           action={
             <Button asChild>
-              <Link href="/console/executions">Run an analysis</Link>
+              <Link href="/executions">Run an analysis</Link>
             </Button>
           }
           className="mt-6 border-0 bg-transparent"
@@ -110,7 +110,7 @@ function SubjectRow({ subject }: { subject: Subject }) {
   return (
     <li>
       <Link
-        href={`/console/executions/${subject.last_execution_id}`}
+        href={`/executions/${subject.last_execution_id}`}
         className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-surface-raised px-4 py-3.5 transition-colors hover:border-border-strong"
       >
         <span className="flex min-w-0 flex-col gap-1">

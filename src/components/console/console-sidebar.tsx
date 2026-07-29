@@ -13,7 +13,9 @@ import { workspace } from "@/data/workspace";
 import { cn } from "@/lib/utils";
 
 function isActive(pathname: string, href: string) {
-  if (href === "/console") return pathname === "/console";
+  // The dashboard is the only exact match: every other entry is a prefix, so
+  // `/executions/abc123` still lights up Executions.
+  if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 

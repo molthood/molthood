@@ -56,7 +56,7 @@ function buildItems(): CommandItem[] {
       group: "Actions",
       icon: consoleNav[3].icon,
       keywords: "run analyse analyze execute token wallet contract chain",
-      href: "/console/executions",
+      href: "/executions",
     },
     {
       id: "action-docs",

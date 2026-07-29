@@ -279,7 +279,7 @@ function WatchRow({
         <span className="flex shrink-0 items-center gap-2">
           {watch.last_execution_id ? (
             <Button asChild size="sm" variant="ghost">
-              <Link href={`/console/executions/${watch.last_execution_id}`}>
+              <Link href={`/executions/${watch.last_execution_id}`}>
                 Last result
               </Link>
             </Button>

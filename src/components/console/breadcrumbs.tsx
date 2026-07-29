@@ -10,13 +10,19 @@ import { cn } from "@/lib/utils";
 
 type Crumb = { label: string; href: string };
 
-/** Turns a `/console/...` pathname into labelled crumbs. */
+/**
+ * Turns a console pathname into labelled crumbs.
+ *
+ * Paths are read as the visitor sees them — `/agents`, not `/console/agents`.
+ * The console is served from its own host, and the `/console` segment the app
+ * still uses internally is rewritten away by middleware before this runs.
+ */
 export function useBreadcrumbs(pathname: string): Crumb[] {
   return React.useMemo(() => {
-    const crumbs: Crumb[] = [{ label: "Console", href: "/console" }];
-    const segments = pathname.split("/").filter(Boolean).slice(1);
+    const crumbs: Crumb[] = [{ label: "Console", href: "/" }];
+    const segments = pathname.split("/").filter(Boolean);
 
-    let href = "/console";
+    let href = "";
     for (const segment of segments) {
       href += `/${segment}`;
       const match = consoleNav.find((item) => item.href === href);

@@ -19,7 +19,7 @@ export default function ConsoleHomePage() {
         description="Live network state read directly from Robinhood Chain, plus the health of every service the platform depends on."
         actions={
           <Button asChild size="sm">
-            <Link href="/console/executions">
+            <Link href="/executions">
               <Play aria-hidden="true" />
               Run analysis
             </Link>

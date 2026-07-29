@@ -263,7 +263,7 @@ function ExecutionsLive() {
                         {/* The id is the permalink — every stored run is
                             addressable now that history outlives the process. */}
                         <Link
-                          href={`/console/executions/${record.id}`}
+                          href={`/executions/${record.id}`}
                           className="text-primary underline-offset-4 hover:underline"
                         >
                           {record.id.slice(0, 10)}
@@ -311,7 +311,7 @@ function ExecutionsLive() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <Link
-                      href={`/console/executions/${record.id}`}
+                      href={`/executions/${record.id}`}
                       className="font-mono text-xs font-bold text-primary underline-offset-4 hover:underline"
                     >
                       {record.id.slice(0, 10)}
@@ -340,7 +340,7 @@ function ExecutionsLive() {
             <DrawerTitle>Execution result</DrawerTitle>
             {live.result ? (
               <Link
-                href={`/console/executions/${live.result.execution_id}`}
+                href={`/executions/${live.result.execution_id}`}
                 className="font-mono text-[10px] font-bold text-muted underline-offset-4 hover:text-foreground hover:underline"
               >
                 {live.result.execution_id}

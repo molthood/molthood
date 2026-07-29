@@ -193,7 +193,7 @@ function LiveDashboard() {
               description="Live token data from the Robinhood Chain explorer."
               actions={
                 <Button asChild size="sm" variant="ghost">
-                  <Link href="/console/executions">Analyze one</Link>
+                  <Link href="/executions">Analyze one</Link>
                 </Button>
               }
             />
@@ -281,7 +281,7 @@ function LiveDashboard() {
                 </ul>
 
                 <Button asChild variant="secondary" className="mt-5 w-full">
-                  <Link href="/console/agents">
+                  <Link href="/agents">
                     View agents
                     <ArrowRight aria-hidden="true" />
                   </Link>

@@ -14,6 +14,7 @@ import {
   DropdownTrigger,
 } from "@/components/ui/dropdown";
 import { useToast } from "@/components/ui/toast";
+import { SITE_URL } from "@/config/site";
 import { currentUser, workspace } from "@/data/workspace";
 
 function UserMenu() {
@@ -55,13 +56,13 @@ function UserMenu() {
 
         <DropdownLabel>{workspace.name}</DropdownLabel>
         <DropdownItem asChild>
-          <Link href="/console/settings">
+          <Link href="/settings">
             <UserRound />
             Profile
           </Link>
         </DropdownItem>
         <DropdownItem asChild>
-          <Link href="/console/settings">
+          <Link href="/settings">
             <Settings />
             Workspace settings
           </Link>
@@ -74,7 +75,7 @@ function UserMenu() {
         <DropdownSeparator />
 
         <DropdownItem asChild>
-          <Link href="/docs">
+          <Link href={`${SITE_URL}/docs`}>
             <BookOpen />
             Documentation
           </Link>
