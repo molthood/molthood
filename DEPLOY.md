@@ -160,22 +160,30 @@ any origin call the API with credentials.
 
 ## Connecting GitHub
 
-Neither Railway nor Vercel has a GitHub connection on this account, so neither
-can read the private repo. Both currently deploy from a **CLI upload** instead:
-`railway up` and `vercel --prod`. That works, and it is how the live services
-got there — but a push to `main` deploys nothing on its own.
+**Railway is connected.** A push to `main` builds and deploys the backend.
 
-Granting access is a browser step in each dashboard:
-
-- **Railway** → project → `molthood-api` → Settings → Source → Connect Repo.
-  The service already has `rootDirectory` set to `/backend`, so nothing else
-  changes.
-- **Vercel** → project → Settings → Git → Connect Git Repository.
-
-Until then, redeploy with:
+Worth knowing, because it bit once: `railway up` **detaches the GitHub source**.
+An upload replaces whatever the service was building from, so a deploy done
+that way silently turns auto-deploy off. Reattach with:
 
 ```bash
-railway up --service molthood-api     # from the repo root
+railway service source connect --repo molthood/molthood --branch main --service molthood-api
+```
+
+It prints nothing on success — check `source.repo` rather than the output.
+`rootDirectory` survives the round trip and stays `/backend`.
+
+**Vercel is not connected.** The account was created with an email address and
+has no GitHub login connection, which `vercel git connect` refuses on:
+
+```
+You need to add a Login Connection to your GitHub account first. (400)
+```
+
+Fix it under Vercel account settings → Login Connections → GitHub, then run
+`vercel git connect`. Until then the console deploys by upload:
+
+```bash
 vercel --prod --yes
 ```
 
