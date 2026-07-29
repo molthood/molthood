@@ -1,0 +1,60 @@
+[project]
+name = "molthood-backend"
+version = "0.3.0"
+description = "Backend for Molthood — the AI execution platform for Robinhood Chain."
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 90
+target-version = "py312"
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "SIM",  # simplify
+    "RUF",
+]
+ignore = [
+    "B008",  # FastAPI dependencies are function calls in defaults by design.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"app/agents/*/agent.py" = ["ARG002"]  # generated stubs keep the full signature
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = true
+disallow_untyped_decorators = false
+plugins = ["pydantic.mypy"]
+exclude = ["alembic/"]
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+# Parsing libraries that ship no type information. We keep our own wrappers
+# fully typed; only the third-party surface is untyped.
+[[tool.mypy.overrides]]
+module = ["readability.*", "feedparser.*", "lxml.*", "markdownify.*", "bs4.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+filterwarnings = ["error::DeprecationWarning:app.*"]
+
+# The E2B SDK is an optional dependency: a deployment that never runs code has
+# no reason to install it, and the provider reports itself unavailable rather
+# than failing to import.
+[[tool.mypy.overrides]]
+module = ["e2b_code_interpreter.*"]
+ignore_missing_imports = true

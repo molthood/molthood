@@ -1,0 +1,19 @@
+# The root .gitignore already covers `.env*` recursively. This file repeats it
+# so the backend stays safe if it is ever extracted into its own repository.
+.env
+.env.*
+!.env.example
+
+# The SQLite database. Holds real execution history, the watchlist, and the
+# hashes of every issued API key — none of which belongs in a repository.
+*.db
+*.db-journal
+*.db-wal
+
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+*.egg-info/

@@ -1,0 +1,171 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* ------------------------------------------------------------------ *
+ * Design tokens
+ * One theme: a full neon-green field with heavy black type. Tokens are
+ * declared once here and consumed everywhere as Tailwind utilities.
+ * ------------------------------------------------------------------ */
+@theme {
+  /* Field — electric lime, leaning yellow. */
+  --color-background: #bdf83c;
+  --color-surface: #aeeb2e;
+  --color-surface-raised: #cbff5b;
+  --color-border: #93ce1f;
+  --color-border-strong: #79ad12;
+
+  /* Ink — everything that is not the field is black. */
+  --color-foreground: #08120d;
+  --color-muted: #17200b;
+
+  /*
+   * On a neon field the accent is the ink, not another green — primary
+   * buttons, indicators and icons all resolve to black.
+   */
+  --color-primary: #08120d;
+  --color-primary-hover: #000000;
+  --color-danger: #6b0d0d;
+
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Generous vertical rhythm for marketing sections. */
+  --spacing-section: 7rem;
+  --spacing-section-lg: 9.5rem;
+
+  --radius-card: 0.875rem;
+}
+
+@layer base {
+  /*
+   * Tailwind v4 defaults `border-color` to currentColor. Every surface in
+   * this product uses the same hairline, so anchor it globally.
+   */
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    background-color: var(--color-background);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    /* Body copy sits at medium — nothing on the field renders as light. */
+    font-weight: 500;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Never let a decorative element widen the page. */
+    overflow-x: clip;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: -0.024em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  strong,
+  b {
+    font-weight: 700;
+  }
+
+  code,
+  kbd,
+  pre,
+  samp {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-feature-settings: normal;
+  }
+
+  ::selection {
+    background-color: var(--color-foreground);
+    color: var(--color-background);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-foreground);
+    outline-offset: 2px;
+  }
+
+  /* Respect reduced-motion for every animation in the app. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    ::after,
+    ::before {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /*
+   * A single hairline grid used behind the hero. Kept in CSS rather than an
+   * asset so it stays crisp at any density and costs no network request.
+   */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, var(--color-border) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-border) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  /* Fades a decorative layer out toward the edges of its container. */
+  .mask-fade {
+    -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+    mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 40%, transparent 100%);
+  }
+}
+
+/* Used by the execution console so each log line arrives rather than appears.
+   Defined here rather than inline so the reduced-motion block above disables
+   it along with everything else. */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The three dots in the execution console header. Staggered in the component
+   so they twinkle in sequence rather than flashing together. Sits outside the
+   reduced-motion block, which already disables it along with everything else. */
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
