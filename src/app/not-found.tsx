@@ -5,7 +5,7 @@ import { Container } from "@/components/layout/container";
 import { Heading } from "@/components/layout/heading";
 import { Navbar } from "@/components/layout/navbar";
 import { Button } from "@/components/ui/button";
-import { siteConfig } from "@/config/site";
+import { SITE_URL, siteConfig } from "@/config/site";
 
 export default function NotFound() {
   return (
@@ -24,8 +24,12 @@ export default function NotFound() {
             platform exposes is reachable from the console or the documentation.
           </p>
           <div className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            {/* Absolute: this page renders on all three hostnames, and on two
+                of them a bare "/" is that surface's own home rather than the
+                site's. An escape hatch that lands somewhere unexpected is not
+                much of an escape hatch. */}
             <Button asChild size="lg">
-              <Link href="/">Back to home</Link>
+              <Link href={SITE_URL}>Back to home</Link>
             </Button>
             <Button asChild size="lg" variant="secondary">
               <Link href={siteConfig.links.docs}>Documentation</Link>

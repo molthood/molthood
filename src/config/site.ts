@@ -1,22 +1,22 @@
 /**
- * Where the console lives, as an absolute URL.
+ * The three hostnames this product is served from.
  *
- * Absolute because the marketing site and the console are different hosts. A
- * relative `/console` from molthood.org would land on the marketing site's own
- * 404 — the console's routes exist only under its own hostname.
+ * Every surface — marketing, docs, console — is one Next.js app behind a
+ * different host, and `src/middleware.ts` maps each host onto its routes. That
+ * makes **relative links between surfaces wrong**, and wrong in a way that
+ * looks fine locally: `/docs` from console.molthood.org is rewritten into the
+ * console's own routes and 404s. It shipped exactly that way once.
  *
- * Overridable so a preview deployment can point at itself instead of at
+ * So a link that crosses a surface uses one of these. A link that stays inside
+ * one stays relative.
+ *
+ * Overridable so a preview deployment points at itself rather than at
  * production, which is otherwise the one link that always escapes the preview.
  */
-/**
- * Where the marketing site and documentation live, as an absolute URL.
- *
- * The console needs this for the same reason the site needs CONSOLE_URL:
- * a relative `/docs` from console.molthood.org is rewritten into the
- * console's own routes and 404s.
- */
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://molthood.org";
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://molthood.org";
+
+export const DOCS_URL =
+  process.env.NEXT_PUBLIC_DOCS_URL ?? "https://docs.molthood.org";
 
 export const CONSOLE_URL =
   process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://console.molthood.org";
@@ -30,8 +30,11 @@ export const siteConfig = {
   chain: "Robinhood Chain",
   links: {
     console: CONSOLE_URL,
-    docs: "/docs",
-    api: "/api",
+    docs: DOCS_URL,
+    // The API *reference* lives inside the docs. The `api.` hostname belongs
+    // to the API itself — the thing that actually answers requests — and a
+    // documentation page cannot have it.
+    api: `${DOCS_URL}/api`,
   },
 } as const;
 
@@ -53,8 +56,8 @@ export const mainNav: NavItem[] = [
   // so it should navigate in place rather than open a tab with an
   // outbound-link icon promising somebody else's site.
   { label: "Console", href: CONSOLE_URL },
-  { label: "Docs", href: "/docs" },
-  { label: "API", href: "/api" },
+  { label: "Docs", href: DOCS_URL },
+  { label: "API", href: `${DOCS_URL}/api` },
 ];
 
 /** Footer links — intentionally the same surface area as the header. */
@@ -63,6 +66,6 @@ export const footerNav: NavItem[] = [
   // so it should navigate in place rather than open a tab with an
   // outbound-link icon promising somebody else's site.
   { label: "Console", href: CONSOLE_URL },
-  { label: "Docs", href: "/docs" },
-  { label: "API", href: "/api" },
+  { label: "Docs", href: DOCS_URL },
+  { label: "API", href: `${DOCS_URL}/api` },
 ];

@@ -1,91 +1,124 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Host-based routing: the console lives on its own hostname.
+ * Host-based routing. Three surfaces, three hostnames, one Next.js app.
  *
- * The app's files still sit under `src/app/console/`, because two route groups
- * cannot both own `/` — the marketing landing page already does. So the
- * `/console` segment survives internally and is rewritten away here, which
- * makes it invisible to anyone using the site.
+ *   molthood.org           the marketing site
+ *   docs.molthood.org      the documentation, including the API reference
+ *   console.molthood.org   the console
  *
- * The rule is one canonical URL per page. `console.<domain>/agents` is the
- * console; `<domain>/console/agents` redirects to it rather than serving a
- * second copy. Two hostnames rendering the same page would split bookmarks,
- * confuse anyone sharing a link, and make analytics count one visit twice.
+ * The files still live under `/console` and `/docs` internally, because two
+ * route groups cannot both own `/` — the landing page already does. Those
+ * segments are rewritten away here, so they never appear in a URL.
+ *
+ * One canonical URL per page, enforced in both directions: a surface's own
+ * host serves it, and every other host redirects there. Two hostnames
+ * rendering the same page would split bookmarks, confuse anyone sharing a
+ * link, and count one visit twice.
+ *
+ * `api.molthood.org` is deliberately absent. That name belongs to the API
+ * itself, which is a different service on a different host entirely; the API
+ * *reference* is a documentation page and lives at `docs.molthood.org/api`.
  */
 
-/** Hosts that serve the console. `console.localhost` covers development. */
-function isConsoleHost(host: string): boolean {
-  const name = host.split(":")[0].toLowerCase();
-  return name === "console.localhost" || name.startsWith("console.");
+/** The internal segment each host's routes are stored under. */
+const SURFACES = [
+  { prefix: "/console", matches: (name: string) => name.startsWith("console.") },
+  { prefix: "/docs", matches: (name: string) => name.startsWith("docs.") },
+] as const;
+
+function hostname(host: string): string {
+  return host.split(":")[0].toLowerCase();
 }
 
-function isDocsHost(host: string): boolean {
-  return host.split(":")[0].toLowerCase().startsWith("docs.");
+/** Which surface this host serves, or null for the marketing site. */
+function surfaceFor(host: string): (typeof SURFACES)[number] | null {
+  const name = hostname(host);
+  return SURFACES.find((surface) => surface.matches(name)) ?? null;
 }
 
-/** Where to send someone who reached a console path on the marketing host. */
-function consoleOrigin(request: NextRequest): string {
-  const configured = process.env.NEXT_PUBLIC_CONSOLE_URL;
+/**
+ * The public origin for a surface, derived from the host being served.
+ *
+ * Derived rather than hardcoded so a preview deployment redirects within
+ * itself instead of throwing visitors back to production.
+ */
+function originFor(prefix: string, request: NextRequest): string {
+  const configured =
+    prefix === "/console"
+      ? process.env.NEXT_PUBLIC_CONSOLE_URL
+      : process.env.NEXT_PUBLIC_DOCS_URL;
   if (configured) return configured.replace(/\/$/, "");
 
   const host = request.headers.get("host") ?? "";
-  const name = host.split(":")[0];
+  const name = hostname(host);
   const port = host.includes(":") ? `:${host.split(":")[1]}` : "";
 
   // localhost has no registrable domain to prefix, so development keeps
-  // serving /console in place rather than redirecting into a host that may
-  // not resolve.
+  // serving the internal path in place rather than redirecting to a host that
+  // may not resolve.
   if (name === "localhost" || name === "127.0.0.1") return "";
 
-  return `https://console.${name.replace(/^www\./, "")}${port}`;
+  // Strip whatever subdomain we are *currently* on before adding the target's.
+  // Without this, a link from the docs host to the console builds
+  // `console.docs.molthood.org` — a hostname that does not exist, from a
+  // redirect that looked correct in every single-host test.
+  const base = name.replace(/^(www|console|docs)\./, "");
+  return `https://${prefix.slice(1)}.${base}${port}`;
 }
+
+/**
+ * Paths that used to exist on the marketing site and have moved.
+ *
+ * `/api` was the API reference before the docs got their own hostname. Links
+ * to it are already published, so it redirects rather than 404s — which is
+ * what it did until this map existed.
+ */
+const MOVED: Record<string, { prefix: string; path: string }> = {
+  "/api": { prefix: "/docs", path: "/api" },
+};
 
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const { pathname, search } = request.nextUrl;
+  const surface = surfaceFor(host);
 
-  if (isConsoleHost(host)) {
-    // A stale bookmark or an old inbound link. Strip the segment rather than
-    // serve the page at a second address.
-    if (pathname === "/console" || pathname.startsWith("/console/")) {
-      const stripped = pathname.slice("/console".length) || "/";
+  // A path belonging to some *other* surface, arriving on this host. This is
+  // the case that shipped broken: console.molthood.org/docs was rewritten into
+  // the console's own routes and 404'd, and the site's own footer linked
+  // straight to it.
+  for (const other of SURFACES) {
+    if (other === surface) continue;
+    if (pathname !== other.prefix && !pathname.startsWith(`${other.prefix}/`)) {
+      continue;
+    }
+    const origin = originFor(other.prefix, request);
+    if (!origin) return NextResponse.next();
+    const stripped = pathname.slice(other.prefix.length) || "/";
+    return NextResponse.redirect(`${origin}${stripped}${search}`);
+  }
+
+  // Old marketing URLs. Skipped on the surface that now owns the path, where
+  // it is a real page rather than a relocation.
+  const moved = MOVED[pathname];
+  if (moved && surface?.prefix !== moved.prefix) {
+    const origin = originFor(moved.prefix, request);
+    if (origin) return NextResponse.redirect(`${origin}${moved.path}${search}`);
+  }
+
+  if (surface) {
+    // A stale bookmark or an old inbound link still carrying the segment.
+    // Strip it rather than serve the page at a second address.
+    if (pathname === surface.prefix || pathname.startsWith(`${surface.prefix}/`)) {
+      const stripped = pathname.slice(surface.prefix.length) || "/";
       return NextResponse.redirect(new URL(`${stripped}${search}`, request.url));
     }
 
     // `/agents` on the console host is `/console/agents` in the app. The
     // address bar does not change: this is a rewrite, not a redirect.
     const url = request.nextUrl.clone();
-    url.pathname = pathname === "/" ? "/console" : `/console${pathname}`;
+    url.pathname = pathname === "/" ? surface.prefix : `${surface.prefix}${pathname}`;
     return NextResponse.rewrite(url);
-  }
-
-  /**
-   * Docs is a redirect, not a rewrite — and the difference is structural.
-   *
-   * The console is self-contained: its own layout, its own navigation, every
-   * link pointing inside itself. Rewriting its host is invisible because
-   * nothing it renders refers to the world outside.
-   *
-   * `/docs` is not. It sits in the marketing layout and shares a navbar with
-   * `/` and `/api`. Rewriting `docs.<domain>/*` to `/docs/*` would turn that
-   * navbar's own "API" link into `/docs/api`, which does not exist. Making it
-   * work would mean absolutising every marketing link to serve one alias.
-   */
-  if (isDocsHost(host)) {
-    const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://molthood.org";
-    const target = pathname === "/" ? "/docs" : pathname;
-    return NextResponse.redirect(`${site}${target}${search}`);
-  }
-
-  // On the marketing host the console's own routes must not resolve at all,
-  // or every page would exist twice.
-  if (pathname === "/console" || pathname.startsWith("/console/")) {
-    const origin = consoleOrigin(request);
-    if (!origin) return NextResponse.next();
-
-    const stripped = pathname.slice("/console".length) || "/";
-    return NextResponse.redirect(`${origin}${stripped}${search}`);
   }
 
   return NextResponse.next();
