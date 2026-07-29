@@ -1,5 +1,18 @@
 # Deploying Molthood
 
+**Both services are live.**
+
+| What | Where |
+| --- | --- |
+| Console | https://molthood-three.vercel.app |
+| API | https://molthood-api-production.up.railway.app |
+| Repo | https://github.com/molthood/molthood (private) |
+
+Two things still need a browser and cannot be done from a CLI — see
+[Connecting GitHub](#connecting-github) at the end.
+
+---
+
 Two services, two hosts:
 
 | Piece            | Host    | Root directory | What it needs                    |
@@ -140,6 +153,34 @@ any origin call the API with credentials.
 3. `https://api.molthood.org/docs` → **should 404.** If it renders, `APP_ENV`
    is not `production`
 4. Open the console, paste the bootstrap key, run one analysis
+
+---
+
+## Connecting GitHub
+
+Neither Railway nor Vercel has a GitHub connection on this account, so neither
+can read the private repo. Both currently deploy from a **CLI upload** instead:
+`railway up` and `vercel --prod`. That works, and it is how the live services
+got there — but a push to `main` deploys nothing on its own.
+
+Granting access is a browser step in each dashboard:
+
+- **Railway** → project → `molthood-api` → Settings → Source → Connect Repo.
+  The service already has `rootDirectory` set to `/backend`, so nothing else
+  changes.
+- **Vercel** → project → Settings → Git → Connect Git Repository.
+
+Until then, redeploy with:
+
+```bash
+railway up --service molthood-api     # from the repo root
+vercel --prod --yes
+```
+
+One smaller gap: `NEXT_PUBLIC_API_URL` is set for Production and Development
+but not Preview — the CLI asks for a Git branch and will not accept "all
+branches" non-interactively. Preview builds would not reach the API anyway
+without their hostname in `CORS_ORIGINS`.
 
 ---
 
