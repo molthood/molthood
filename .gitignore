@@ -50,3 +50,6 @@ next-env.d.ts
 # `.railway-config-pull-*` is scaffolding a failed `config pull` leaves behind.
 .railway
 .railway-config-pull-*
+
+# Scratch copies made while bisecting a deploy problem.
+*.bak
