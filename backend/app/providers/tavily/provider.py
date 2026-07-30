@@ -33,6 +33,9 @@ class TavilyProvider(Provider):
         Capability.WEB_SEARCH,
         Capability.NEWS_SEARCH,
         Capability.READ_URL,
+        # Every result already carries a `content` snippet, so a caller that
+        # needs bodies does not have to follow up with a read per result.
+        Capability.SEARCH_WITH_CONTENT,
     )
     required_env: ClassVar[tuple[str, ...]] = ("TAVILY_API_KEY",)
 

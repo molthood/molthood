@@ -430,6 +430,25 @@ def test_a_fully_configured_queue_is_usable() -> None:
 # --- Over the wire ----------------------------------------------------------
 
 
+def test_preference_never_names_a_provider_that_cannot_serve(
+    manager: ProviderManager,
+) -> None:
+    """The routing table must not promise what a provider does not declare.
+
+    A stale entry degrades quietly: `best_for` filters on `supports`, so the
+    named provider is skipped and the capability silently falls to whoever is
+    left — or to nothing. The table reads as configured either way.
+    """
+    for capability, names in PREFERENCE.items():
+        for name in names:
+            provider = next((p for p in manager.all() if p.name == name), None)
+            assert provider is not None, f"PREFERENCE names unknown provider {name!r}"
+            assert provider.supports(capability), (
+                f"PREFERENCE routes {capability.value} to {name!r}, "
+                "which does not declare it."
+            )
+
+
 def test_health_reports_missing_keys_without_a_credential(
     anonymous_client: TestClient,
 ) -> None:
