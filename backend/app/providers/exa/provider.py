@@ -40,6 +40,8 @@ class ExaProvider(Provider):
         Capability.SEMANTIC_SEARCH,
         Capability.SIMILAR_PAGES,
         Capability.READ_URL,
+        Capability.READ_MANY,
+        Capability.SEARCH_WITH_CONTENT,
     )
     required_env: ClassVar[tuple[str, ...]] = ("EXA_API_KEY",)
 
@@ -72,6 +74,8 @@ class ExaProvider(Provider):
             return await self._similar(**kwargs)
         if capability is Capability.READ_URL:
             return await self._contents(capability, **kwargs)
+        if capability is Capability.READ_MANY:
+            return await self._contents_many(**kwargs)
         return await self._search(capability, **kwargs)
 
     # --- operations --------------------------------------------------------
@@ -155,6 +159,47 @@ class ExaProvider(Provider):
             capability,
             data={"url": url, "title": first.get("title"), "text": first.get("text")},
             citations=[_citation(first)],
+        )
+
+    async def _contents_many(self, *, urls: list[str], **_: Any) -> ProviderResult:
+        """Read several URLs in one request.
+
+        Not a loop over READ_URL. Exa fetches the whole batch server-side and
+        bills once, so reading twenty references costs one round trip rather
+        than twenty — which is the difference between a research workflow that
+        is practical and one that is not.
+
+        A URL that could not be fetched is reported by absence rather than
+        silently dropped: `missing` names them, so a caller can tell a page it
+        did not get from a page that had nothing to say.
+        """
+        wanted = [url for url in urls if url][:MAX_RESULTS]
+        if not wanted:
+            return ProviderResult.failure(
+                self.name,
+                Capability.READ_MANY,
+                "No URLs were given to read.",
+                error_code="no_urls",
+            )
+
+        client = await self.http()
+        payload = await client.post_json(
+            "/contents",
+            json_body={"urls": wanted, "text": True},
+            operation="contents_many",
+        )
+        results = _results_from(payload)
+        returned = {item.get("url") for item in results}
+
+        return ProviderResult.success(
+            self.name,
+            Capability.READ_MANY,
+            data={
+                "requested": len(wanted),
+                "documents": results,
+                "missing": [url for url in wanted if url not in returned],
+            },
+            citations=[_citation(item) for item in results],
         )
 
 

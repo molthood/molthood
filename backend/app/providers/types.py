@@ -60,8 +60,16 @@ class Capability(StrEnum):
     NEWS_SEARCH = "news_search"
     #: Pages resembling a given page.
     SIMILAR_PAGES = "similar_pages"
+    #: Text of a page returned alongside search results, saving a second call.
+    SEARCH_WITH_CONTENT = "search_with_content"
     #: One URL to clean, readable text.
     READ_URL = "read_url"
+    #: Several URLs read in one request. Not a loop over READ_URL: providers
+    #: that offer it batch server-side and charge once.
+    READ_MANY = "read_many"
+    #: Every URL a site exposes, without fetching their contents. Cheap enough
+    #: to run before deciding what is worth reading.
+    MAP_SITE = "map_site"
     #: Many pages of a site, followed from a root.
     CRAWL_SITE = "crawl_site"
     #: Structured fields pulled out of a page.

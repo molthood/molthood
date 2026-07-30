@@ -51,6 +51,16 @@ PREFERENCE: dict[Capability, tuple[str, ...]] = {
     # Jina first: it needs no key and costs nothing, so a keyless deployment
     # can still read a page.
     Capability.READ_URL: ("jina", "firecrawl", "exa", "tavily"),
+    # Exa alone: it fetches the whole batch server-side and bills once, so a
+    # loop over READ_URL is not an equivalent fallback — it is the same work
+    # at many times the cost.
+    Capability.READ_MANY: ("exa",),
+    # Text arrives with the results, collapsing search-then-fetch into one
+    # call. Ordered ahead of plain WEB_SEARCH wherever a caller needs bodies.
+    Capability.SEARCH_WITH_CONTENT: ("exa", "tavily"),
+    # Mapping returns a site's URLs without rendering any of them, which is
+    # why it precedes crawling rather than competing with it.
+    Capability.MAP_SITE: ("firecrawl",),
     Capability.CRAWL_SITE: ("firecrawl",),
     Capability.EXTRACT_STRUCTURED: ("firecrawl",),
     Capability.SCREENSHOT: ("firecrawl",),

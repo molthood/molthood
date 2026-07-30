@@ -40,6 +40,7 @@ class FirecrawlProvider(Provider):
     )
     capabilities: ClassVar[tuple[Capability, ...]] = (
         Capability.READ_URL,
+        Capability.MAP_SITE,
         Capability.CRAWL_SITE,
         Capability.EXTRACT_STRUCTURED,
         Capability.SCREENSHOT,
@@ -71,6 +72,8 @@ class FirecrawlProvider(Provider):
         return "Scrape API responding."
 
     async def _perform(self, capability: Capability, /, **kwargs: Any) -> ProviderResult:
+        if capability is Capability.MAP_SITE:
+            return await self._map(**kwargs)
         if capability is Capability.CRAWL_SITE:
             return await self._crawl(**kwargs)
         if capability is Capability.EXTRACT_STRUCTURED:
@@ -129,6 +132,57 @@ class FirecrawlProvider(Provider):
             citations=[
                 {"url": url, "title": metadata.get("title"), "provider": self.name}
             ],
+        )
+
+    async def _map(
+        self, *, url: str, limit: int = 200, search: str = "", **_: Any
+    ) -> ProviderResult:
+        """Every URL a site exposes, without fetching any of them.
+
+        This is the step that makes crawling optional. A crawl renders each
+        page and bills for it; a map returns the shape of the site in one call,
+        which is enough to answer "how big is this", "is there documentation",
+        "does a pricing page exist" — and enough to choose the handful of pages
+        actually worth reading.
+
+        `search` narrows the result server-side, so finding the docs section of
+        a large site does not mean pulling ten thousand URLs to filter locally.
+        """
+        client = await self.http()
+        body: dict[str, Any] = {"url": url, "limit": min(max(1, limit), 5000)}
+        if search:
+            body["search"] = search
+
+        payload = await client.post_json("/v2/map", json_body=body, operation="map")
+
+        links = payload.get("links") if isinstance(payload, dict) else None
+        if not isinstance(links, list):
+            return ProviderResult.failure(
+                self.name,
+                Capability.MAP_SITE,
+                "Firecrawl returned no link list for this site.",
+                error_code="map_empty",
+            )
+
+        # The shape varies: entries are either bare strings or objects carrying
+        # a title. Both are normalised here so callers never branch on it.
+        urls: list[dict[str, Any]] = []
+        for link in links:
+            if isinstance(link, str):
+                urls.append({"url": link, "title": None, "description": None})
+            elif isinstance(link, dict) and link.get("url"):
+                urls.append(
+                    {
+                        "url": link["url"],
+                        "title": link.get("title"),
+                        "description": link.get("description"),
+                    }
+                )
+
+        return ProviderResult.success(
+            self.name,
+            Capability.MAP_SITE,
+            data={"url": url, "urls": urls, "total": len(urls), "search": search or None},
         )
 
     async def _crawl(
