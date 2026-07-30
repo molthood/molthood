@@ -1,0 +1,62 @@
+name: Gate
+
+# Both hosts deploy from `main` automatically, so a broken commit ships itself.
+# This is the only thing standing between a bad push and production.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  # A newer push makes an older run pointless. Cancelling frees the runner and
+  # stops two results racing to report on the same branch.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+
+      # Run in the same order as locally, so a failure here is reproducible
+      # with one command rather than a guess about which step CI added.
+      - run: ruff check app tests
+      - run: ruff format --check app tests
+      - run: mypy app
+      - run: pytest
+        env:
+          # Every provider variable is cleared. Tests that pass only because a
+          # developer's key happened to be present are the ones that fail on
+          # somebody else's machine — and CI is somebody else's machine.
+          APP_ENV: local
+          DATABASE_URL: "sqlite:///./ci.db"
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run lint
+      - run: npm run build
+        env:
+          # The build inlines this, so it must be set or the bundle points at
+          # localhost. Pointing at production is correct for a check that only
+          # compiles and never runs a request.
+          NEXT_PUBLIC_API_URL: https://api.molthood.org

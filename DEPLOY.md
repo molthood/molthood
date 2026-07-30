@@ -225,8 +225,10 @@ identical to a slow one from the command line.
 
 Honest gaps, so nothing here reads as more finished than it is:
 
-- **No CI.** Tests run locally (`ruff`, `mypy`, `pytest`) and nothing enforces
-  them on push.
+- **Monitoring is off.** `MONITOR_ENABLED` is unset, so watches can be created
+  and are never checked. Turning it on means every existing watch starts
+  spending its owner's quota — which is why it is a decision rather than a
+  default.
 - **Alembic is configured but has no revisions.** `create_schema()` adds
   missing tables and columns at startup, which covers additive changes. A
   rename, a type change, or a backfill needs a real migration written first.
