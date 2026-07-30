@@ -169,3 +169,65 @@
     opacity: 1;
   }
 }
+
+/* --- Section divider ------------------------------------------------------
+ *
+ * Written as CSS rather than utilities because the gradient has six stops and
+ * an arbitrary-value class for it would be unreadable and unshared.
+ *
+ * The colours run dark at the centre, not light. Molthood's field is neon and
+ * its accent is ink — see `--color-primary` above — so a hairline that
+ * brightened toward its middle would disappear into the page.
+ */
+.molthood-divider-line {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--color-border-strong) 70%, transparent) 18%,
+    color-mix(in oklab, var(--color-foreground) 45%, transparent) 38%,
+    var(--color-foreground) 50%,
+    color-mix(in oklab, var(--color-foreground) 45%, transparent) 62%,
+    color-mix(in oklab, var(--color-border-strong) 70%, transparent) 82%,
+    transparent 100%
+  );
+}
+
+.molthood-divider-wash {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-foreground) 22%, transparent) 42%,
+    color-mix(in oklab, var(--color-foreground) 30%, transparent) 50%,
+    color-mix(in oklab, var(--color-foreground) 22%, transparent) 58%,
+    transparent
+  );
+  opacity: 0.55;
+}
+
+/* The entrance. A keyframe rather than a JS-driven value: it either runs or is
+ * skipped, and cannot leave the element stranded at zero opacity the way an
+ * unstarted animation can. */
+@keyframes molthood-divider-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.molthood-divider {
+  /* `forwards`, not `both`: without a start-state fill the element's
+   natural appearance is fully visible, so an animation that never
+   runs degrades to a divider with no entrance rather than to no
+   divider at all. */
+  animation: molthood-divider-in 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .molthood-divider {
+    animation: none;
+  }
+}
