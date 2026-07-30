@@ -57,7 +57,15 @@ class _Window:
 
         if len(self.hits) >= limit:
             # The oldest hit leaving the window is when a slot frees up.
-            return max(0.0, self.hits[0] + window_seconds - now)
+            #
+            # Clamped to the window at both ends. Floating-point arithmetic on
+            # monotonic timestamps produced 60.000000000000014 for a 60-second
+            # window, and a caller told to wait longer than the window itself
+            # is being given a number that cannot be true — the same class of
+            # impossible timing as a step reported as slower than the run that
+            # contained it.
+            wait = self.hits[0] + window_seconds - now
+            return min(window_seconds, max(0.0, wait))
 
         self.hits.append(now)
         if len(self.hits) > _MAX_TRACKED_HITS:
