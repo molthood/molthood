@@ -148,6 +148,8 @@ def _findings(confirmed: list[dict[str, Any]], refuted: list[dict[str, Any]]) ->
     for item in established:
         mark = "✓" if item.get("state") == "confirmed" else "✗"
         value = item.get("value")
+        if isinstance(value, str):
+            value = describe_source(value)
         rendered = f" — `{value}`" if value not in (None, "", [], {}) else ""
         lines.append(f"- {mark} {describe_source(str(item.get('label')))}{rendered}")
     return "\n".join(lines)

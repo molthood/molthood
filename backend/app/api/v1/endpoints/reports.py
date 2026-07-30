@@ -20,6 +20,7 @@ from fastapi import APIRouter, Path, Query, Response
 from app.api.auth import CurrentKey
 from app.api.deps import ExecutionStoreDep
 from app.core.exceptions import NotFoundError
+from app.engine.compare import compare
 from app.engine.report import Report, build_report
 from app.repositories.api_keys import KeyIdentity
 
@@ -125,3 +126,39 @@ async def download_artifact(
             "x-artifact-id": artifact.id,
         },
     )
+
+
+@router.get(
+    "/{execution_id}/compare/{other_id}",
+    summary="Compare two subjects",
+    description=(
+        "Two different subjects at the same moment — token against token, site "
+        "against site. Distinct from change detection, which compares one "
+        "subject to its own past. "
+        "Checks that only one side ran, or that either side could not "
+        "establish, are listed as **not comparable** rather than scored: the "
+        "difference there is in the coverage, not in the subjects. A verdict is "
+        "withheld entirely when too little is shared."
+    ),
+)
+async def compare_executions(
+    store: ExecutionStoreDep,
+    identity: CurrentKey,
+    execution_id: str = Path(description="The first execution."),
+    other_id: str = Path(description="The execution to compare it against."),
+) -> dict[str, Any]:
+    from app.api.v1.endpoints.execute import to_response
+
+    scope = _scope(identity)
+    pair = []
+    for wanted in (execution_id, other_id):
+        result = store.get_result(wanted, scope)
+        if result is None:
+            raise NotFoundError(
+                f"No execution found with id '{wanted}'.",
+                details={"execution_id": wanted},
+                suggested_action="Both executions must exist and belong to this key.",
+            )
+        pair.append(to_response(result).model_dump(mode="json"))
+
+    return compare(pair[0], pair[1]).to_dict()

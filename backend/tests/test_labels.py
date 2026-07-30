@@ -179,3 +179,29 @@ def test_a_rendered_report_names_no_supplier_outside_its_links() -> None:
 
     # The link itself survived untouched.
     assert "https://robinhoodchain.blockscout.com/token/0x1" in markdown
+
+
+def test_a_link_inside_a_label_is_not_rewritten() -> None:
+    """The bug this caught in review.
+
+    `https://robinhoodchain.blockscout.com/…` became
+    `https://robinhoodchain.Chain explorer.com/…` — a link that no longer
+    resolves. That trades the only guarantee a finding has for a cosmetic one.
+    """
+    url = "https://robinhoodchain.blockscout.com/token/0x1"
+
+    assert describe_source(url) == url
+    assert redact_facts({"url": url})["url"] == url
+
+
+def test_prose_around_a_link_is_still_rewritten() -> None:
+    result = describe_source("GoPlus says https://goplus.example/x is fine")
+
+    assert result.startswith("Security screening says")
+    assert "https://goplus.example/x" in result
+
+
+def test_a_supplier_inside_a_value_is_removed() -> None:
+    """Agents write prose into values: "0.0% (GoPlus: 0.0%)" reached a reader
+    through the data rather than through a label."""
+    assert describe_source("0.0% (GoPlus: 0.0%)") == "0.0% (Security screening: 0.0%)"

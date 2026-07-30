@@ -71,15 +71,38 @@ _PHRASES: tuple[tuple[re.Pattern[str], str], ...] = tuple(
 
 _DOUBLED = re.compile(r"\b(\w[\w\s]*?)\s+\1\b", re.IGNORECASE)
 
+#: A URL, wherever it appears. Matched so it can be **protected** rather than
+#: rewritten — a hostname is an address, not prose.
+_URL = re.compile(r"""https?://[^\s)\]"']+""", re.IGNORECASE)
 
-def describe_source(label: str) -> str:
-    """A source label with the supplier removed."""
-    result = label
+
+def describe_source(text: str) -> str:
+    """Supplier names removed, and any links left exactly as they were.
+
+    URLs are lifted out before substitution and restored afterwards. Without
+    that step a value carrying its own link had the hostname rewritten —
+    `https://robinhoodchain.blockscout.com/…` became
+    `https://robinhoodchain.Chain explorer.com/…`, a link that no longer
+    resolves. That trades the one real guarantee a finding has for a cosmetic
+    one, which is the trade this module is not allowed to make.
+    """
+    protected: list[str] = []
+
+    def stash(match: re.Match[str]) -> str:
+        protected.append(match.group(0))
+        return f"\x00{len(protected) - 1}\x00"
+
+    result = _URL.sub(stash, text)
     for pattern, role in _PHRASES:
         result = pattern.sub(role, result)
     # Collapse anything the substitutions doubled, e.g. "Chain explorer Chain
     # explorer API".
-    return _DOUBLED.sub(r"\1", result).strip()
+    result = _DOUBLED.sub(r"\1", result)
+
+    for index, url in enumerate(protected):
+        result = result.replace(f"\x00{index}\x00", url)
+
+    return result.strip()
 
 
 def describe_service(name: str) -> str:
