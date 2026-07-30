@@ -7,12 +7,24 @@
  * declared once here and consumed everywhere as Tailwind utilities.
  * ------------------------------------------------------------------ */
 @theme {
-  /* Field — electric lime, leaning yellow. */
-  --color-background: #bdf83c;
-  --color-surface: #aeeb2e;
-  --color-surface-raised: #cbff5b;
-  --color-border: #93ce1f;
-  --color-border-strong: #79ad12;
+  /* Field — sampled from the logo rather than chosen beside it.
+   *
+   * The mark is a gradient from #f0ff5a down to #637f0e, and the page was a
+   * brighter lime than either end of it, so the logo read as a sticker placed
+   * on the site instead of part of it. These sit inside the mark's own range.
+   *
+   * Darker also buys contrast the previous field did not have: black ink on
+   * #bdf83c is bright enough to glare over a long page. */
+  --color-background: #aed92f;
+  --color-surface: #a3cd25;
+  --color-surface-raised: #c2ec46;
+  --color-border: #86ad1c;
+  --color-border-strong: #6d8f12;
+
+  /* Aurora stops. The extremes of the logo, used at very low opacity so the
+   * field has depth without becoming a second colour. */
+  --color-aurora-warm: #f0ff5a;
+  --color-aurora-deep: #3d480f;
 
   /* Ink — everything that is not the field is black. */
   --color-foreground: #08120d;
@@ -66,6 +78,10 @@
     text-rendering: optimizeLegibility;
     /* Never let a decorative element widen the page. */
     overflow-x: clip;
+    /* The aurora is painted here, behind everything, and is `fixed` — see
+     * `body::before`. Isolation keeps it from being stacked over by any
+     * positioned child that happens to sit at the same z-index. */
+    isolation: isolate;
   }
 
   h1,
@@ -228,6 +244,73 @@
 
 @media (prefers-reduced-motion: reduce) {
   .molthood-divider {
+    animation: none;
+  }
+}
+
+
+/* --- Aurora ---------------------------------------------------------------
+ *
+ * Four soft lights over the field, drawn once on the body and shared by every
+ * surface — so the console and the docs sit on the same page the landing does
+ * rather than each carrying their own approximation of it.
+ *
+ * `fixed`, not `absolute`: the aurora belongs to the viewport, so it stays put
+ * while content scrolls past. Attaching it to the document would make it slide
+ * away and leave long pages flat below the fold.
+ *
+ * Painted with CSS rather than driven from JavaScript. The divider taught that
+ * lesson expensively — an entrance that never ran left it invisible, and a
+ * background that fails the same way is a page that silently loses its
+ * identity.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      42vmax 34vmax at 12% 8%,
+      color-mix(in oklab, var(--color-aurora-warm) 62%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      50vmax 38vmax at 88% 12%,
+      color-mix(in oklab, var(--color-aurora-deep) 26%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      44vmax 40vmax at 78% 82%,
+      color-mix(in oklab, var(--color-aurora-warm) 40%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      38vmax 34vmax at 18% 92%,
+      color-mix(in oklab, var(--color-aurora-deep) 22%, transparent),
+      transparent 60%
+    );
+  /* Blurring the composite rather than each stop: the lights bleed into one
+   * another instead of overlapping as four distinct circles, which is the
+   * difference between an aurora and a set of spotlights. */
+  filter: blur(48px) saturate(112%);
+  animation: molthood-aurora 34s ease-in-out infinite alternate;
+}
+
+@keyframes molthood-aurora {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    /* Small and slow. A background that can be caught moving stops being a
+     * background and becomes something to look at. */
+    transform: translate3d(-2%, 1.5%, 0) scale(1.06);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before {
     animation: none;
   }
 }
