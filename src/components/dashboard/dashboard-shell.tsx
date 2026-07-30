@@ -8,7 +8,7 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { dashboardNav } from "@/config/dashboard";
-import { CONSOLE_URL, DOCS_URL } from "@/config/site";
+import { CONSOLE_URL, DOCS_URL, SITE_URL } from "@/config/site";
 import { cn } from "@/lib/utils";
 
 /**
@@ -38,15 +38,20 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             <Menu className="size-4" aria-hidden="true" />
           </button>
 
-          <Link href="/" className="flex items-center gap-2">
-            <Logo className="size-5" />
-            <span className="font-display text-sm font-bold text-foreground">
-              Molthood
-            </span>
-            <span className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted">
+          {/* The mark carries the wordmark and is the way back to the site —
+              the same rule as the console and the docs, so a visitor learns it
+              once. The badge names which surface they are on. */}
+          <span className="flex min-w-0 items-center gap-2">
+            <a href={SITE_URL} className="transition-opacity hover:opacity-80">
+              <Logo />
+            </a>
+            <Link
+              href="/"
+              className="shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted transition-colors hover:border-border-strong hover:text-foreground"
+            >
               Developers
-            </span>
-          </Link>
+            </Link>
+          </span>
 
           <nav className="ml-auto flex items-center gap-4">
             <a

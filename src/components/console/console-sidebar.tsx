@@ -8,7 +8,7 @@ import { ArrowUpRight } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Badge } from "@/components/ui/badge";
 import { consoleNav } from "@/config/console";
-import { siteConfig } from "@/config/site";
+import { SITE_URL, siteConfig } from "@/config/site";
 import { workspace } from "@/data/workspace";
 import { cn } from "@/lib/utils";
 
@@ -33,9 +33,13 @@ function ConsoleSidebar({ className, ...props }: ConsoleSidebarProps) {
       {...props}
     >
       <div className="flex h-16 shrink-0 items-center border-b border-border px-5">
-        <Link href="/" className="transition-opacity hover:opacity-80">
+        {/* Absolute, to the site. On this host "/" is the console's own
+            dashboard — which the Home entry below already reaches — so a
+            relative mark left a visitor with no way back to Molthood except
+            the address bar. */}
+        <a href={SITE_URL} className="transition-opacity hover:opacity-80">
           <Logo />
-        </Link>
+        </a>
       </div>
 
       <div className="border-b border-border px-3 py-3">

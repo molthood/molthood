@@ -9,7 +9,7 @@ import { ArrowUpRight, Menu, X } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Container } from "@/components/layout/container";
 import { Button } from "@/components/ui/button";
-import { mainNav, siteConfig } from "@/config/site";
+import { SITE_URL, mainNav, siteConfig } from "@/config/site";
 import { useScrolled } from "@/hooks/use-scrolled";
 import { cn } from "@/lib/utils";
 
@@ -48,13 +48,16 @@ function Navbar() {
     >
       <Container size="xl">
         <nav className="flex h-16 items-center justify-between gap-6" aria-label="Main">
-          <Link
-            href="/"
+          {/* Absolute. This navbar renders on the docs host too, where "/" is
+              the documentation root rather than the site — so a relative mark
+              took a visitor deeper instead of back out. */}
+          <a
+            href={SITE_URL}
             className="rounded-md transition-opacity hover:opacity-80"
             aria-label={`${siteConfig.name} home`}
           >
             <Logo />
-          </Link>
+          </a>
 
           <ul className="hidden items-center gap-1 md:flex">
             {mainNav.map((item) => (

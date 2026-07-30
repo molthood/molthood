@@ -34,6 +34,7 @@ export const siteConfig = {
   links: {
     console: CONSOLE_URL,
     docs: DOCS_URL,
+    dashboard: DASHBOARD_URL,
     // The API *reference* lives inside the docs. The `api.` hostname belongs
     // to the API itself — the thing that actually answers requests — and a
     // documentation page cannot have it.
@@ -60,6 +61,7 @@ export const mainNav: NavItem[] = [
   // outbound-link icon promising somebody else's site.
   { label: "Console", href: CONSOLE_URL },
   { label: "Docs", href: DOCS_URL },
+  { label: "Developers", href: DASHBOARD_URL },
   { label: "API", href: `${DOCS_URL}/api` },
 ];
 
@@ -70,5 +72,6 @@ export const footerNav: NavItem[] = [
   // outbound-link icon promising somebody else's site.
   { label: "Console", href: CONSOLE_URL },
   { label: "Docs", href: DOCS_URL },
+  { label: "Developers", href: DASHBOARD_URL },
   { label: "API", href: `${DOCS_URL}/api` },
 ];
