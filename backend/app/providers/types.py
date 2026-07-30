@@ -78,6 +78,10 @@ class Capability(StrEnum):
     SCREENSHOT = "screenshot"
     #: Run code and return what it produced.
     RUN_CODE = "run_code"
+    #: Profile a dataset — shape, types, missing values, distributions — and
+    #: render charts for it. Distinct from RUN_CODE because the caller supplies
+    #: data rather than a program, and gets a report rather than stdout.
+    ANALYSE_DATA = "analyse_data"
     #: Key/value storage with expiry.
     CACHE = "cache"
     #: Deferred and scheduled work.

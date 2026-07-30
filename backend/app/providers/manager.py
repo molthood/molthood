@@ -65,6 +65,7 @@ PREFERENCE: dict[Capability, tuple[str, ...]] = {
     Capability.EXTRACT_STRUCTURED: ("firecrawl",),
     Capability.SCREENSHOT: ("firecrawl",),
     Capability.RUN_CODE: ("e2b",),
+    Capability.ANALYSE_DATA: ("e2b",),
     Capability.CACHE: ("upstash_redis",),
     Capability.QUEUE: ("upstash_qstash",),
     Capability.ANALYTICS: ("posthog",),

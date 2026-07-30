@@ -22,12 +22,14 @@ code does not need it installed.
 from __future__ import annotations
 
 import asyncio
-import base64
 import contextlib
+import json
 from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
+from app.engine.artifacts import Artifact, ArtifactKind
+from app.engine.artifacts import build as build_artifact
 from app.logging import get_logger
 from app.providers.base import Provider
 from app.providers.types import Capability, ProviderResult
@@ -50,30 +52,6 @@ ARTIFACT_DIR = "/home/user/artifacts"
 
 
 @dataclass(slots=True)
-class Artifact:
-    """A file the executed code produced."""
-
-    name: str
-    path: str
-    kind: str
-    size_bytes: int
-    #: Base64 for anything binary; plain text otherwise. The distinction is
-    #: recorded so a consumer never has to guess how to decode it.
-    encoding: str
-    content: str
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "name": self.name,
-            "path": self.path,
-            "kind": self.kind,
-            "size_bytes": self.size_bytes,
-            "encoding": self.encoding,
-            "content": self.content,
-        }
-
-
-@dataclass(slots=True)
 class ExecutionOutput:
     """Everything one run produced."""
 
@@ -93,23 +71,126 @@ class ExecutionOutput:
         }
 
 
-#: Extension to a kind the report can group by.
-_KINDS: dict[str, str] = {
-    ".png": "image",
-    ".jpg": "image",
-    ".jpeg": "image",
-    ".svg": "image",
-    ".csv": "data",
-    ".json": "data",
-    ".parquet": "data",
-    ".md": "document",
-    ".txt": "document",
-    ".pdf": "document",
-    ".html": "document",
+#: Extension to media type and artifact kind.
+#:
+#: The media type is what the shared artifact builder encodes by, so the
+#: sandbox does not decide text-versus-binary a second time — that decision
+#: lives in exactly one place, and disagreeing copies of it are how a download
+#: ends up unopenable.
+_FILE_TYPES: dict[str, tuple[str, ArtifactKind]] = {
+    ".png": ("image/png", ArtifactKind.CHART),
+    ".jpg": ("image/jpeg", ArtifactKind.IMAGE),
+    ".jpeg": ("image/jpeg", ArtifactKind.IMAGE),
+    ".svg": ("image/svg+xml", ArtifactKind.CHART),
+    ".csv": ("text/csv", ArtifactKind.TABLE),
+    ".json": ("application/json", ArtifactKind.DATA),
+    ".parquet": ("application/octet-stream", ArtifactKind.DATA),
+    ".md": ("text/markdown", ArtifactKind.REPORT),
+    ".txt": ("text/plain", ArtifactKind.LOG),
+    ".pdf": ("application/pdf", ArtifactKind.REPORT),
+    ".html": ("text/html", ArtifactKind.REPORT),
 }
 
-#: Kinds that survive a round trip as text. Everything else is base64.
+#: Read as text when the media type is one the shared builder stores verbatim.
 _TEXT_KINDS = frozenset({".csv", ".json", ".md", ".txt", ".html", ".svg"})
+
+
+#: The profiling script. Fixed rather than assembled from caller input: the
+#: data arrives as a file, so nothing the caller sends is ever parsed as code.
+#:
+#: Every section is wrapped, because a dataset that breaks one chart must not
+#: cost the reader the entire profile — the same partial-failure rule the rest
+#: of the platform follows.
+_ANALYSIS_SCRIPT = """
+import json, warnings
+warnings.filterwarnings("ignore")
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+ART = "/home/user/artifacts"
+name = "__FILENAME__"
+
+if name.endswith(".json"):
+    frame = pd.read_json(f"/home/user/{name}")
+else:
+    frame = pd.read_csv(f"/home/user/{name}")
+
+profile = {
+    "rows": int(frame.shape[0]),
+    "columns": int(frame.shape[1]),
+    "column_names": [str(c) for c in frame.columns],
+    "dtypes": {str(c): str(t) for c, t in frame.dtypes.items()},
+    "missing": {str(c): int(n) for c, n in frame.isna().sum().items()},
+    "duplicated_rows": int(frame.duplicated().sum()),
+}
+
+numeric = frame.select_dtypes("number")
+if not numeric.empty:
+    described = numeric.describe().to_dict()
+    profile["numeric"] = {
+        str(col): {str(k): (None if pd.isna(v) else float(v)) for k, v in stats.items()}
+        for col, stats in described.items()
+    }
+
+categorical = frame.select_dtypes(exclude="number")
+if not categorical.empty:
+    profile["categorical"] = {
+        str(col): {
+            "unique": int(categorical[col].nunique()),
+            "top": (
+                None if categorical[col].mode().empty
+                else str(categorical[col].mode().iloc[0])
+            ),
+        }
+        for col in categorical.columns[:20]
+    }
+
+try:
+    frame.head(50).to_csv(f"{ART}/preview.csv", index=False)
+except Exception:
+    pass
+
+# One chart per numeric column, capped: a hundred histograms is not a report.
+for column in list(numeric.columns)[:6]:
+    try:
+        figure, axis = plt.subplots(figsize=(6, 3.2))
+        numeric[column].plot(kind="hist", bins=30, ax=axis, color="#12490F")
+        axis.set_title(f"Distribution of {column}")
+        figure.tight_layout()
+        figure.savefig(f"{ART}/dist_{column}.png", dpi=110)
+        plt.close(figure)
+    except Exception:
+        pass
+
+if numeric.shape[1] > 1:
+    try:
+        correlation = numeric.corr(numeric_only=True)
+        profile["correlation"] = {
+            str(a): {str(b): (None if pd.isna(v) else round(float(v), 4))
+                     for b, v in row.items()}
+            for a, row in correlation.to_dict().items()
+        }
+        figure, axis = plt.subplots(figsize=(5.5, 4.5))
+        image = axis.imshow(correlation, cmap="viridis", vmin=-1, vmax=1)
+        axis.set_xticks(
+            range(len(correlation)), correlation.columns, rotation=90, fontsize=7
+        )
+        axis.set_yticks(range(len(correlation)), correlation.columns, fontsize=7)
+        figure.colorbar(image)
+        axis.set_title("Correlation")
+        figure.tight_layout()
+        figure.savefig(f"{ART}/correlation.png", dpi=110)
+        plt.close(figure)
+    except Exception:
+        pass
+
+with open(f"{ART}/profile.json", "w") as handle:
+    json.dump(profile, handle, indent=2, default=str)
+
+print("__PROFILE__" + json.dumps(profile, default=str))
+"""
 
 
 class E2BProvider(Provider):
@@ -121,7 +202,10 @@ class E2BProvider(Provider):
         "Runs Python in a disposable sandbox and returns stdout, errors, and "
         "any files it wrote — charts, CSV, JSON, markdown, PDF."
     )
-    capabilities: ClassVar[tuple[Capability, ...]] = (Capability.RUN_CODE,)
+    capabilities: ClassVar[tuple[Capability, ...]] = (
+        Capability.RUN_CODE,
+        Capability.ANALYSE_DATA,
+    )
     required_env: ClassVar[tuple[str, ...]] = ("E2B_API_KEY",)
 
     def __init__(self, *, template: str = "", **kwargs: Any) -> None:
@@ -163,6 +247,8 @@ class E2BProvider(Provider):
         return "Sandbox started and executed."
 
     async def _perform(self, capability: Capability, /, **kwargs: Any) -> ProviderResult:
+        if capability is Capability.ANALYSE_DATA:
+            return await self.analyse(**kwargs)
         return await self.run(**kwargs)
 
     # --- lifecycle ---------------------------------------------------------
@@ -200,6 +286,70 @@ class E2BProvider(Provider):
 
     # --- work --------------------------------------------------------------
 
+    async def analyse(
+        self,
+        *,
+        data: str,
+        filename: str = "dataset.csv",
+        timeout_seconds: int = DEFAULT_EXECUTION_TIMEOUT,
+        **_: Any,
+    ) -> ProviderResult:
+        """Profile a dataset and chart it.
+
+        The caller supplies **data, not a program**, which is the whole reason
+        this is a capability of its own rather than a use of RUN_CODE. A caller
+        that had to send code would need to know pandas is present, what the
+        artifact directory is called, and how to serialise a result — three
+        implementation details that would then be duplicated at every call
+        site and drift apart.
+
+        The generated script is fixed and the data is written to a file rather
+        than interpolated into it. Pasting a CSV into source is how a stray
+        quote becomes a syntax error, and how hostile content becomes code.
+        """
+        profile = _ANALYSIS_SCRIPT.replace("__FILENAME__", filename)
+
+        async with self.session(timeout_seconds=timeout_seconds + 15) as sandbox:
+            await asyncio.to_thread(sandbox.files.write, f"/home/user/{filename}", data)
+            await asyncio.to_thread(
+                sandbox.run_code,
+                f"import os; os.makedirs('{ARTIFACT_DIR}', exist_ok=True)",
+            )
+
+            execution = await asyncio.to_thread(sandbox.run_code, profile)
+            output = _output_from(execution)
+            output.artifacts = await self._collect(sandbox)
+
+        if output.error:
+            return ProviderResult.failure(
+                self.name,
+                Capability.ANALYSE_DATA,
+                f"The dataset could not be profiled: {output.error}",
+                error_code="analysis_failed",
+            )
+
+        summary: dict[str, Any] = {}
+        for line in output.stdout.splitlines():
+            if line.startswith("__PROFILE__"):
+                with contextlib.suppress(json.JSONDecodeError):
+                    summary = json.loads(line[len("__PROFILE__") :])
+
+        return ProviderResult.success(
+            self.name,
+            Capability.ANALYSE_DATA,
+            data={
+                "filename": filename,
+                "profile": summary,
+                "artifacts": [item.to_dict() for item in output.artifacts],
+                "stdout": output.stdout,
+            },
+            warnings=(
+                []
+                if summary
+                else ["The profile could not be parsed; charts may still be present."]
+            ),
+        )
+
     async def run(
         self,
         *,
@@ -223,8 +373,6 @@ class E2BProvider(Provider):
                 error_code="sdk_missing",
             )
 
-        output = ExecutionOutput()
-
         async with self.session(
             timeout_seconds=max(timeout_seconds + 30, DEFAULT_SANDBOX_TIMEOUT)
         ) as sandbox:
@@ -238,16 +386,7 @@ class E2BProvider(Provider):
                 sandbox.run_code, code, timeout=timeout_seconds
             )
 
-            output.stdout = "\n".join(getattr(execution.logs, "stdout", []) or [])
-            output.stderr = "\n".join(getattr(execution.logs, "stderr", []) or [])
-
-            if getattr(execution, "error", None) is not None:
-                error = execution.error
-                name = getattr(error, "name", "Error")
-                value = getattr(error, "value", "")
-                output.error = f"{name}: {value}".strip(": ")
-
-            output.results = _results_from(execution)
+            output = _output_from(execution)
 
             if collect_artifacts:
                 output.artifacts = await self._collect(sandbox)
@@ -284,32 +423,32 @@ class E2BProvider(Provider):
             try:
                 if as_text:
                     raw = await asyncio.to_thread(sandbox.files.read, path)
-                    content = raw if isinstance(raw, str) else str(raw)
-                    encoding = "utf-8"
+                    payload: str | bytes = raw if isinstance(raw, str) else str(raw)
                 else:
                     raw = await asyncio.to_thread(
                         sandbox.files.read, path, format="bytes"
                     )
-                    data = raw if isinstance(raw, bytes | bytearray) else bytes(raw)
-                    content = base64.b64encode(data).decode("ascii")
-                    encoding = "base64"
+                    payload = raw if isinstance(raw, bytes | bytearray) else bytes(raw)
             except Exception as exc:
                 logger.debug("artifact_read_failed", path=path, error=str(exc))
                 continue
 
-            size = len(content)
+            size = len(payload)
             if size > MAX_ARTIFACT_BYTES:
                 logger.warning("artifact_too_large", path=path, size_bytes=size)
                 continue
 
+            media_type, kind = _FILE_TYPES.get(
+                suffix, ("application/octet-stream", ArtifactKind.DATA)
+            )
             artifacts.append(
-                Artifact(
-                    name=name,
-                    path=path,
-                    kind=_KINDS.get(suffix, "file"),
-                    size_bytes=size,
-                    encoding=encoding,
-                    content=content,
+                build_artifact(
+                    kind=kind,
+                    filename=name,
+                    media_type=media_type,
+                    data=payload,
+                    label=name,
+                    description=f"Written by the sandbox at {path}.",
                 )
             )
 
@@ -319,6 +458,27 @@ class E2BProvider(Provider):
 def _suffix(name: str) -> str:
     _, _, extension = name.rpartition(".")
     return f".{extension.lower()}" if extension and extension != name else ""
+
+
+def _output_from(execution: Any) -> ExecutionOutput:
+    """Read one sandbox execution into the shared shape.
+
+    Shared by `run` and `analyse` rather than duplicated: the two would drift,
+    and the field that drifts first is `error` — which is the one a caller
+    checks before trusting anything else.
+    """
+    output = ExecutionOutput()
+    output.stdout = "\n".join(getattr(execution.logs, "stdout", []) or [])
+    output.stderr = "\n".join(getattr(execution.logs, "stderr", []) or [])
+
+    if getattr(execution, "error", None) is not None:
+        error = execution.error
+        name = getattr(error, "name", "Error")
+        value = getattr(error, "value", "")
+        output.error = f"{name}: {value}".strip(": ")
+
+    output.results = _results_from(execution)
+    return output
 
 
 def _results_from(execution: Any) -> list[dict[str, Any]]:
