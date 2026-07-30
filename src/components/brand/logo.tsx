@@ -1,30 +1,46 @@
 import * as React from "react";
+import Image from "next/image";
 
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 
-export type LogoMarkProps = React.ComponentProps<"svg">;
+export type LogoMarkProps = Omit<React.ComponentProps<"div">, "children"> & {
+  /** Rendered size in CSS pixels. The source is square. */
+  size?: number;
+};
 
 /**
- * Molthood mark — an ascending shard, read as a feather quill split down the
- * spine. Geometric so it stays legible at 16px in a sidebar or favicon.
+ * The Molthood mark.
+ *
+ * A raster source at a fixed intrinsic size rather than an `<img>` with a bare
+ * `src`: `next/image` emits width and height, so the header does not reflow
+ * once the file arrives. A logo that shifts the whole navigation on load is
+ * the most visible layout shift a site can have, because it is at the top of
+ * every page.
+ *
+ * `priority` for the same reason — this is above the fold on all four
+ * surfaces, so lazy-loading it would guarantee the shift it exists to avoid.
  */
-function LogoMark({ className, ...props }: LogoMarkProps) {
+function LogoMark({ className, size = 22, ...props }: LogoMarkProps) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      aria-hidden="true"
-      className={cn("size-6", className)}
+    <span
+      className={cn("relative inline-flex shrink-0", className)}
+      style={{ width: size, height: size }}
       {...props}
     >
-      <path
-        d="M12 2.5 4.5 21.5l7.5-5.6V2.5Z"
-        fill="currentColor"
-        fillOpacity="0.42"
+      <Image
+        src="/logo.png"
+        alt=""
+        width={size}
+        height={size}
+        priority
+        // Decorative here: the wordmark beside it already names the product,
+        // and a screen reader announcing "Molthood Molthood" is worse than
+        // announcing it once.
+        aria-hidden="true"
+        className="size-full object-contain"
       />
-      <path d="M12 2.5 19.5 21.5 12 15.9V2.5Z" fill="currentColor" />
-    </svg>
+    </span>
   );
 }
 
@@ -36,7 +52,7 @@ export type LogoProps = React.ComponentProps<"div"> & {
 function Logo({ className, markOnly = false, ...props }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2.5", className)} {...props}>
-      <LogoMark className="size-[22px] text-primary" />
+      <LogoMark />
       {markOnly ? (
         <span className="sr-only">{siteConfig.name}</span>
       ) : (
