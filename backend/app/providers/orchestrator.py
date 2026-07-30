@@ -28,8 +28,10 @@ import hashlib
 import time
 from typing import Any
 
+from app.engine.labels import describe_service
 from app.logging import get_logger
 from app.models.base import new_id, utcnow
+from app.providers.content import classify_urls
 from app.providers.inputs import TaskInput, extract
 from app.providers.manager import ProviderManager, get_provider_manager
 from app.providers.types import Capability, ProviderResult
@@ -228,6 +230,17 @@ class TaskOrchestrator:
         provider = self._manager.get(step.provider or "")
         if provider is None:
             return None
+
+        # A batch capability takes the whole list in one call. Looping over it
+        # with a singular `url` was both wrong and self-defeating: it raised on
+        # the missing argument, and had it not, it would have paid per URL for
+        # the one operation that exists to charge once.
+        if step.capability is Capability.READ_MANY:
+            batch = await provider.execute(step.capability, urls=urls)
+            report.reasoning.append(
+                f"Read {len(urls)} page(s) identified as significant, in one request."
+            )
+            return batch
 
         reads = await asyncio.gather(
             *(provider.execute(step.capability, url=url) for url in urls)
@@ -441,19 +454,66 @@ def _input_name(capability: Capability) -> str:
     return "query"
 
 
-def _top_urls(results: dict[str, ProviderResult], *, limit: int) -> list[str]:
-    """The best sources the search steps found, in preference order.
+#: Which parts of a site actually answer questions about it, best first.
+#: A pricing page says more about a project than its twentieth blog post.
+_SECTION_PRIORITY = ("documentation", "pricing", "about", "legal", "blog")
 
-    Semantic results come first: they are ranked by meaning rather than
-    keyword, so the top of that list is the likeliest to be worth a full read.
+
+def _significant_pages(results: dict[str, ProviderResult], *, limit: int) -> list[str]:
+    """Pages worth rendering, chosen from a site map.
+
+    The map returns every URL a site exposes — often thousands — and reading
+    them all would cost more than the audit is worth. Classifying by section
+    and taking the best few turns an unusable list into a decision: the
+    documentation, the pricing, the terms.
     """
+    mapped = results.get(Capability.MAP_SITE.value)
+    if mapped is None or not mapped.ok or not isinstance(mapped.data, dict):
+        return []
+
+    entries = mapped.data.get("urls")
+    if not isinstance(entries, list):
+        return []
+
+    every = [
+        entry["url"]
+        for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("url"), str)
+    ]
+    sections = classify_urls(every)
+
+    chosen: list[str] = []
+    for name in _SECTION_PRIORITY:
+        for url in sections.get(name, [])[:2]:
+            if url not in chosen:
+                chosen.append(url)
+            if len(chosen) >= limit:
+                return chosen
+    return chosen
+
+
+def _top_urls(results: dict[str, ProviderResult], *, limit: int) -> list[str]:
+    """The best sources the earlier steps found, in preference order.
+
+    A **site map is consulted first** when one exists. Its URLs are the site's
+    own, chosen by what each section is for, so reading them answers questions
+    about the site itself — whereas search results are what the rest of the
+    web says about it. For an audit those are different questions, and the
+    first is the one that was asked.
+
+    Failing that, semantic results lead: they are ranked by meaning rather than
+    keyword, so the top of that list is likeliest to be worth a full read.
+    """
+    urls: list[str] = list(_significant_pages(results, limit=limit))
+    if len(urls) >= limit:
+        return urls[:limit]
+
     order = (
         Capability.SEMANTIC_SEARCH.value,
         Capability.WEB_SEARCH.value,
         Capability.NEWS_SEARCH.value,
     )
 
-    urls: list[str] = []
     for name in order:
         result = results.get(name)
         if result is None or not result.ok:
@@ -491,7 +551,7 @@ def _evidence_from(result: ProviderResult) -> list[EvidenceItem]:
                 # look like a duplicate rather than two different searches.
                 kind=f"sources_found:{capability.value}",
                 label=(
-                    f"Sources found by {result.provider} "
+                    f"Sources found by {describe_service(result.provider)} "
                     f"({capability.value.replace('_', ' ')})"
                 ),
                 value=found,

@@ -88,12 +88,26 @@ WORKFLOWS: dict[TaskKind, Workflow] = {
     TaskKind.WEBSITE_AUDIT: Workflow(
         kind=TaskKind.WEBSITE_AUDIT,
         title="Website audit",
-        description="Read a site, follow its pages, and see how it presents itself.",
+        description="Map a site, read what matters, and see how it presents itself.",
         steps=(
             Step(
                 Capability.READ_URL,
                 required=True,
                 description="Read the landing page.",
+            ),
+            # Mapping comes before crawling on purpose. It returns every URL a
+            # site exposes without rendering any of them, which answers "how
+            # big is this", "does it document itself", "is it priced openly"
+            # for the cost of one call — and names the handful of pages worth
+            # paying to render.
+            Step(
+                Capability.MAP_SITE,
+                description="Discover every page the site exposes.",
+            ),
+            Step(
+                Capability.READ_MANY,
+                description="Read the pages the map identified as significant.",
+                needs_results=True,
             ),
             Step(Capability.CRAWL_SITE, description="Follow the rest of the site."),
             Step(Capability.SCREENSHOT, description="Capture how it renders."),

@@ -122,8 +122,11 @@ async def test_confidence_is_never_a_reassuring_default(
 async def test_a_partially_served_task_reports_medium_not_high(
     orchestrator: TaskOrchestrator, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Jina alone can read a page, so an audit runs — but three of its four
-    steps have no provider and the confidence has to say so."""
+    """A keyless reader alone can read a page, so an audit still runs.
+
+    Five of its six steps have no provider here, and the confidence has to say
+    so rather than presenting one step's output as a completed audit.
+    """
 
     async def read(self: Any, capability: Capability, /, **kwargs: Any) -> Any:
         return ProviderResult.success(
@@ -136,7 +139,7 @@ async def test_a_partially_served_task_reports_medium_not_high(
 
     assert report.confidence == "medium"
     assert report.performance.steps_run == 1
-    assert report.performance.steps_skipped == 3
+    assert report.performance.steps_skipped == 5
 
 
 async def test_one_failing_step_does_not_fail_the_task(
@@ -318,3 +321,75 @@ def test_no_signing_key_accepts_nothing() -> None:
     ok, _ = verify_signature(_sign(BODY, CURRENT_KEY), BODY, [])
 
     assert not ok
+
+
+# --- Choosing what to read --------------------------------------------------
+
+
+def test_a_site_map_is_read_before_what_the_web_says_about_the_site() -> None:
+    """For an audit these are different questions, and one of them was asked.
+
+    A map's URLs are the site's own. Search results are what everyone else
+    says about it. Reading the second when the first is available answers a
+    question nobody put.
+    """
+    from app.providers.orchestrator import _top_urls
+
+    results = {
+        Capability.MAP_SITE.value: ProviderResult.success(
+            "firecrawl",
+            Capability.MAP_SITE,
+            data={
+                "urls": [
+                    {"url": "https://site.test/docs/start"},
+                    {"url": "https://site.test/pricing"},
+                    {"url": "https://site.test/random"},
+                ]
+            },
+        ),
+        Capability.WEB_SEARCH.value: ProviderResult.success(
+            "exa",
+            Capability.WEB_SEARCH,
+            data={},
+            citations=[{"url": "https://elsewhere.test/review"}],
+        ),
+    }
+
+    chosen = _top_urls(results, limit=3)
+
+    assert chosen[0] == "https://site.test/docs/start"
+    assert "https://site.test/pricing" in chosen
+    # The review is only reached once the site's own pages run out.
+    assert chosen.index("https://elsewhere.test/review") == len(chosen) - 1
+
+
+def test_search_results_are_still_used_when_no_map_exists() -> None:
+    """Mapping is preferred, not required. A site nobody could map still gets
+    read from what the search steps found."""
+    from app.providers.orchestrator import _top_urls
+
+    results = {
+        Capability.WEB_SEARCH.value: ProviderResult.success(
+            "exa",
+            Capability.WEB_SEARCH,
+            data={},
+            citations=[{"url": "https://elsewhere.test/a"}],
+        ),
+    }
+
+    assert _top_urls(results, limit=3) == ["https://elsewhere.test/a"]
+
+
+def test_a_failed_map_does_not_stop_the_read() -> None:
+    from app.providers.orchestrator import _top_urls
+
+    results = {
+        Capability.MAP_SITE.value: ProviderResult.failure(
+            "firecrawl", Capability.MAP_SITE, "upstream down"
+        ),
+        Capability.WEB_SEARCH.value: ProviderResult.success(
+            "exa", Capability.WEB_SEARCH, data={}, citations=[{"url": "https://x.test/a"}]
+        ),
+    }
+
+    assert _top_urls(results, limit=3) == ["https://x.test/a"]

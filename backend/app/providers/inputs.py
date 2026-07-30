@@ -62,6 +62,7 @@ class TaskInput:
         if capability in (
             Capability.READ_URL,
             Capability.CRAWL_SITE,
+            Capability.MAP_SITE,
             Capability.SCREENSHOT,
             Capability.SIMILAR_PAGES,
         ):
