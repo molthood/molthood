@@ -16,6 +16,7 @@ from dataclasses import dataclass
 
 from app.core.exceptions import ConfigurationError, MolthoodError
 from app.engine.context import ExecutionContext
+from app.engine.labels import redact_facts
 from app.logging import get_logger
 
 logger = get_logger(__name__)
@@ -165,7 +166,13 @@ class AISummarizer:
         return SummaryOutcome(status="generated", text=text, model=response.model)
 
     def _build_prompt(self, target: str, context: ExecutionContext) -> str:
-        payload = json.dumps(context.facts, indent=2, default=str, sort_keys=True)
+        # Redacted before serialising, not after: the model can only repeat a
+        # supplier's name if the name reached its input. It reached its input
+        # through fact keys like `codex` and `deployer_share_goplus_pct`, and
+        # duly appeared in published prose as "via Codex".
+        payload = json.dumps(
+            redact_facts(context.facts), indent=2, default=str, sort_keys=True
+        )
         # Guard the prompt budget: evidence for a busy address can be large.
         if len(payload) > 12_000:
             payload = payload[:12_000] + "\n… (truncated)"

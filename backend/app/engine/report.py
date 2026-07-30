@@ -23,6 +23,7 @@ from app.engine.artifacts import (
     json_document,
     markdown_report,
 )
+from app.engine.labels import describe_source
 
 #: Findings this many or fewer are listed in full in the summary section;
 #: beyond it the section counts them and points at the evidence table.
@@ -122,7 +123,10 @@ def _executive_summary(
     summary = execution.get("summary")
     status = execution.get("summary_status")
     if summary:
-        lines.append(f"\n{summary}")
+        # Runs summarised before facts were redacted on the way into the prompt
+        # can still quote a supplier by name. Rewriting on the way out covers
+        # that history without touching what was stored.
+        lines.append(f"\n{describe_source(str(summary))}")
     elif status and status != "generated":
         lines.append(f"\n_No written summary: {status.replace('_', ' ')}._")
 
@@ -145,7 +149,7 @@ def _findings(confirmed: list[dict[str, Any]], refuted: list[dict[str, Any]]) ->
         mark = "✓" if item.get("state") == "confirmed" else "✗"
         value = item.get("value")
         rendered = f" — `{value}`" if value not in (None, "", [], {}) else ""
-        lines.append(f"- {mark} {item.get('label')}{rendered}")
+        lines.append(f"- {mark} {describe_source(str(item.get('label')))}{rendered}")
     return "\n".join(lines)
 
 
@@ -158,11 +162,12 @@ def _warnings(refuted: list[dict[str, Any]], facts: dict[str, Any]) -> str:
             if not isinstance(signal, dict):
                 continue
             lines.append(
-                f"- **{signal.get('severity', 'unknown')}** — {signal.get('detail')}"
+                f"- **{signal.get('severity', 'unknown')}** — "
+                f"{describe_source(str(signal.get('detail')))}"
             )
 
     for item in refuted:
-        lines.append(f"- A claim did not hold: {item.get('label')}")
+        lines.append(f"- A claim did not hold: {describe_source(str(item.get('label')))}")
 
     changes = facts.get("changes")
     if isinstance(changes, dict) and changes.get("alarming"):
@@ -179,8 +184,9 @@ def _unknowns(unknown: list[dict[str, Any]]) -> str:
 
     lines = ["These checks could not run. They are **not** negative results.", ""]
     for item in unknown:
-        reason = item.get("reason") or "No reason recorded."
-        lines.append(f"- {item.get('label')} — {reason}")
+        reason = describe_source(str(item.get("reason") or "No reason recorded."))
+        label = describe_source(str(item.get("label")))
+        lines.append(f"- {label} — {reason}")
     return "\n".join(lines)
 
 
@@ -285,9 +291,15 @@ def _performance(execution: dict[str, Any], stages: list[dict[str, Any]]) -> str
 def _sources(sources: list[dict[str, Any]]) -> str:
     if not sources:
         return ""
-    # Vendor names never reach a report: a source is named by what it is.
+    # A source is named by what it contributed, never by which company it was.
+    #
+    # The **URL is left exactly as it is**, vendor hostname and all. A finding
+    # is only worth something because it can be checked somewhere independent,
+    # and rewriting the destination to hide a name would break the one property
+    # that makes the report auditable. Only the label is a presentation choice.
     return "\n".join(
-        f"- [{item.get('label') or item.get('url')}]({item.get('url')})"
+        f"- [{describe_source(str(item.get('label') or item.get('url')))}]"
+        f"({item.get('url')})"
         for item in sources
         if item.get("url")
     )
