@@ -25,6 +25,9 @@ import { NextResponse, type NextRequest } from "next/server";
 const SURFACES = [
   { prefix: "/console", matches: (name: string) => name.startsWith("console.") },
   { prefix: "/docs", matches: (name: string) => name.startsWith("docs.") },
+  // The developer platform. A fourth surface is one entry here, which is the
+  // whole point of the table — the routing logic below did not change.
+  { prefix: "/dashboard", matches: (name: string) => name.startsWith("dashboard.") },
 ] as const;
 
 function hostname(host: string): string {
@@ -47,7 +50,9 @@ function originFor(prefix: string, request: NextRequest): string {
   const configured =
     prefix === "/console"
       ? process.env.NEXT_PUBLIC_CONSOLE_URL
-      : process.env.NEXT_PUBLIC_DOCS_URL;
+      : prefix === "/docs"
+        ? process.env.NEXT_PUBLIC_DOCS_URL
+        : process.env.NEXT_PUBLIC_DASHBOARD_URL;
   if (configured) return configured.replace(/\/$/, "");
 
   const host = request.headers.get("host") ?? "";
@@ -63,7 +68,7 @@ function originFor(prefix: string, request: NextRequest): string {
   // Without this, a link from the docs host to the console builds
   // `console.docs.molthood.org` — a hostname that does not exist, from a
   // redirect that looked correct in every single-host test.
-  const base = name.replace(/^(www|console|docs)\./, "");
+  const base = name.replace(/^(www|console|docs|dashboard)\./, "");
   return `https://${prefix.slice(1)}.${base}${port}`;
 }
 

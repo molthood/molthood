@@ -18,6 +18,9 @@ export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://molthood.or
 export const DOCS_URL =
   process.env.NEXT_PUBLIC_DOCS_URL ?? "https://docs.molthood.org";
 
+export const DASHBOARD_URL =
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "https://dashboard.molthood.org";
+
 export const CONSOLE_URL =
   process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://console.molthood.org";
 
