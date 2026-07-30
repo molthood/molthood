@@ -21,7 +21,7 @@ export type LogoMarkProps = Omit<React.ComponentProps<"div">, "children"> & {
  * `priority` for the same reason — this is above the fold on all four
  * surfaces, so lazy-loading it would guarantee the shift it exists to avoid.
  */
-function LogoMark({ className, size = 22, ...props }: LogoMarkProps) {
+function LogoMark({ className, size = 32, ...props }: LogoMarkProps) {
   return (
     <span
       className={cn("relative inline-flex shrink-0", className)}
@@ -51,12 +51,12 @@ export type LogoProps = React.ComponentProps<"div"> & {
 
 function Logo({ className, markOnly = false, ...props }: LogoProps) {
   return (
-    <div className={cn("flex items-center gap-2.5", className)} {...props}>
+    <div className={cn("flex items-center gap-2", className)} {...props}>
       <LogoMark />
       {markOnly ? (
         <span className="sr-only">{siteConfig.name}</span>
       ) : (
-        <span className="font-display text-[15px] font-bold tracking-[-0.015em] text-foreground">
+        <span className="font-display text-[17px] font-bold tracking-[-0.015em] text-foreground">
           {siteConfig.name}
         </span>
       )}
