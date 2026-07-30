@@ -42,7 +42,10 @@ function Navbar() {
       className={cn(
         "sticky top-0 z-50 w-full transition-colors duration-200 ease-out",
         scrolled || open
-          ? "border-b border-border bg-background/85 backdrop-blur-md"
+          // Only once scrolled, where it separates a floating bar from the
+          // content passing under it. At rest the divider below does the job,
+          // and two rules a few pixels apart is what made this read cheap.
+          ? "border-b border-border/60 bg-background/85 backdrop-blur-md"
           : "border-b border-transparent bg-transparent",
       )}
     >
