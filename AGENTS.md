@@ -103,7 +103,11 @@ Three constraints, all load-bearing:
 - **`MONITOR_ENABLED` is off by default.** A monitor that started itself would
   begin spending every existing key's quota the moment a new version deployed.
 - **A check spends the owner's quota**, exactly as a manual run does, and is
-  refused the same way when the allowance is gone.
+  refused the same way when the allowance is gone. Each tick takes a shared
+  lock first, so two replicas cannot both find the same watch due and bill
+  the owner twice for one result — without a shared cache the lock is
+  refused rather than faked, and the tick runs anyway because a single
+  process has nothing to race with.
 - **A monitored run passes `summarize=False`.** The AI summary is over half the
   wall time and the diff is the product; hourly prose about an unmoved token
   is pure cost.
@@ -142,8 +146,7 @@ src/
   app/
     (site)/          public surface — shares Navbar + Footer via layout
       page.tsx       landing
-      docs/          documentation homepage
-      api/           API platform homepage
+      docs/          documentation — [...slug] renders every page from config
     console/         application shell — own layout, sidebar + topbar
     globals.css      design tokens (@theme) + base layer
     not-found.tsx
@@ -158,7 +161,8 @@ src/
     marketing/       hero, pipeline, agent cards, section blocks
     motion/          Reveal / Stagger / HoverLift + shared motion presets
     brand/           logo mark
-  config/            site, agents, pipeline, console, docs, api — marketing content
+  config/            site, agents, pipeline, console — marketing content
+  config/docs/       every documentation page, as data rather than JSX
   data/workspace.ts  console chrome identity only (no auth yet, no metrics)
   types/console.ts   domain types for the marketing surface
   hooks/             use-api (fetch + loading + error), use-live-analysis (SSE),
