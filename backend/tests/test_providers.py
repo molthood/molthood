@@ -592,3 +592,35 @@ def test_the_plan_endpoint_shows_routing_without_executing(
     assert body["classified_as"] == "research"
     assert body["plan"]["runnable"] is False
     assert "EXA_API_KEY" in body["plan"]["blocked_by"]
+
+
+# --- Coordination -----------------------------------------------------------
+
+
+async def test_a_lock_is_refused_rather_than_faked_without_a_shared_backend(
+    manager: ProviderManager,
+) -> None:
+    """The in-memory fallback offers no mutual exclusion at all.
+
+    Handing back a token that guarantees nothing would be worse than refusing:
+    the caller would believe it was alone. Refusing means the work is skipped
+    this tick and retried on the next, which is the safe direction.
+    """
+    assert manager.redis.is_shared is False
+
+    assert await manager.redis.acquire_lock("anything") is None
+    assert await manager.redis.release_lock("anything", "token") is False
+
+
+async def test_a_counter_reports_nothing_rather_than_a_per_process_number(
+    manager: ProviderManager,
+) -> None:
+    """A count only one process ever saw is not a metric."""
+    assert await manager.redis.increment("hits") is None
+
+
+async def test_the_lock_context_manager_reports_whether_it_was_taken(
+    manager: ProviderManager,
+) -> None:
+    async with manager.redis.lock("tick") as taken:
+        assert taken is False

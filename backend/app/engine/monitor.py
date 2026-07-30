@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 from app.config import get_settings
 from app.core.exceptions import MolthoodError
 from app.logging import get_logger
+from app.providers.manager import get_provider_manager
 
 if TYPE_CHECKING:  # pragma: no cover - typing only
     from app.repositories.watches import DueWatch
@@ -139,10 +140,17 @@ async def monitor_loop() -> None:
     """Tick forever, checking whatever is due.
 
     Deliberately a plain task rather than a cron library or an external
-    scheduler: the platform runs as one process today, and adding a scheduler
-    dependency would buy nothing that a sleep loop does not already do. It is
-    also why the tick is idempotent — the store decides what is due, so two
-    processes racing would duplicate work but never corrupt state.
+    scheduler: adding a scheduler dependency would buy nothing a sleep loop
+    does not already do.
+
+    Each tick takes a **shared lock** before doing anything. Without one, two
+    replicas both find the same watch due and both run it — which does not
+    corrupt anything, but does spend the owner's quota twice for one result.
+    That was a documented limitation until a shared cache made it fixable.
+
+    When there is no shared backend the lock cannot be taken, and the tick runs
+    anyway: a single-process deployment has nothing to race with, and refusing
+    to work would trade a real feature for a hazard that does not exist there.
     """
     settings = get_settings()
     interval = settings.monitor_tick_seconds
@@ -152,7 +160,22 @@ async def monitor_loop() -> None:
     while True:
         try:
             await asyncio.sleep(interval)
-            await run_due_checks()
+
+            cache = get_provider_manager().redis
+            if not cache.is_shared:
+                await run_due_checks()
+                continue
+
+            # Held slightly longer than the tick, so a slow pass does not
+            # release the lock into the next one and let a second replica in
+            # while this one is still working.
+            async with cache.lock("monitor:tick", ttl_seconds=interval * 3) as taken:
+                if taken:
+                    await run_due_checks()
+                else:
+                    logger.debug(
+                        "monitor_tick_skipped", reason="another replica holds the tick"
+                    )
         except asyncio.CancelledError:
             logger.info("monitor_stopped")
             raise

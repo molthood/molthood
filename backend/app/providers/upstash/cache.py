@@ -15,8 +15,11 @@ visible rather than discovered.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import time
+import uuid
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
@@ -125,6 +128,16 @@ class UpstashRedisProvider(Provider):
         if self._api_key is None:
             absent.append("UPSTASH_REDIS_REST_TOKEN")
         return tuple(absent)
+
+    @property
+    def is_shared(self) -> bool:
+        """Whether the store is visible to other processes.
+
+        Named for the property that actually matters to a caller. Locks and
+        counters are meaningless without it — a lock one process can see is
+        not a lock, and a counter one process can see is not a metric.
+        """
+        return self.backend == "upstash-redis"
 
     @property
     def backend(self) -> str:
@@ -288,6 +301,144 @@ class UpstashRedisProvider(Provider):
         # a duration, so neither is returned as one.
         return seconds if seconds >= 0 else None
 
+    # --- coordination ------------------------------------------------------
+
+    async def acquire_lock(
+        self, name: str, *, ttl_seconds: int = 300, namespace: str = "lock"
+    ) -> str | None:
+        """Take a lock across processes. Returns a token, or None if held.
+
+        This exists because of a real, documented duplication: the monitor loop
+        has no cross-process lock, so two replicas run every scheduled check
+        twice and bill the owner twice.
+
+        Two properties make it safe rather than decorative:
+
+        - **`SET NX EX` is one round trip.** Checking then setting is two, and
+          the gap between them is exactly where both replicas decide they won.
+        - **The lock always expires.** A holder that crashes mid-check must not
+          wedge the schedule forever, so the TTL is the deadline rather than a
+          cleanup step somebody has to remember.
+
+        **In-memory fallback returns None.** A per-process lock offers no
+        mutual exclusion at all, and handing back a token that guarantees
+        nothing would be worse than refusing: the caller would believe it was
+        alone. Refusing means the work is skipped this tick and retried on the
+        next, which is the safe direction.
+        """
+        if not self.is_shared:
+            return None
+
+        token = uuid.uuid4().hex
+        try:
+            result = await self._command(
+                [
+                    "SET",
+                    _namespaced(name, namespace),
+                    token,
+                    "NX",
+                    "EX",
+                    str(ttl_seconds),
+                ],
+                operation="lock_acquire",
+            )
+        except Exception as exc:
+            logger.debug("lock_acquire_failed", key=name, error=str(exc))
+            return None
+
+        return token if _result_of(result) == "OK" else None
+
+    async def release_lock(
+        self, name: str, token: str, *, namespace: str = "lock"
+    ) -> bool:
+        """Release a lock, but only if this caller still holds it.
+
+        The token check is the whole point. A plain `DEL` would let a holder
+        whose TTL already expired delete the lock a *different* worker has
+        since taken — turning a safe timeout into two workers running at once,
+        which is the failure the lock was added to prevent.
+
+        Compare-and-delete runs as a Lua script so the check and the delete are
+        one atomic step; doing it in two commands reopens the same window.
+        """
+        if not self.is_shared:
+            return False
+
+        script = (
+            "if redis.call('GET', KEYS[1]) == ARGV[1] "
+            "then return redis.call('DEL', KEYS[1]) else return 0 end"
+        )
+        try:
+            result = await self._command(
+                ["EVAL", script, "1", _namespaced(name, namespace), token],
+                operation="lock_release",
+            )
+        except Exception as exc:
+            logger.debug("lock_release_failed", key=name, error=str(exc))
+            return False
+
+        return _result_of(result) in (1, "1")
+
+    @contextlib.asynccontextmanager
+    async def lock(
+        self, name: str, *, ttl_seconds: int = 300, namespace: str = "lock"
+    ) -> AsyncIterator[bool]:
+        """Hold a lock for the duration of a block.
+
+        Yields whether it was taken. The release is in a `finally` for the same
+        reason the sandbox is killed in one: the case where a lock most needs
+        releasing is the case where the body raised.
+        """
+        token = await self.acquire_lock(
+            name, ttl_seconds=ttl_seconds, namespace=namespace
+        )
+        try:
+            yield token is not None
+        finally:
+            if token is not None:
+                await self.release_lock(name, token, namespace=namespace)
+
+    # --- counters ----------------------------------------------------------
+
+    async def increment(
+        self,
+        key: str,
+        *,
+        amount: int = 1,
+        ttl_seconds: int | None = None,
+        namespace: str = "metric",
+    ) -> int | None:
+        """Add to a counter and return the new value.
+
+        Server-side, so concurrent writers cannot lose an increment to a
+        read-then-write race — the same reason quota is a guarded UPDATE rather
+        than a select followed by a save.
+
+        Returns None when there is no shared backend. A counter that only ever
+        saw one process is not a metric, and reporting it as one would be a
+        number nobody should act on.
+        """
+        if not self.is_shared:
+            return None
+
+        full = _namespaced(key, namespace)
+        try:
+            result = await self._command(
+                ["INCRBY", full, str(amount)], operation="increment"
+            )
+            value = _result_of(result)
+            # Expiry is set alongside rather than beforehand: setting it first
+            # would reset the window on every increment and the counter would
+            # never age out.
+            if ttl_seconds is not None:
+                await self._command(
+                    ["EXPIRE", full, str(ttl_seconds), "NX"], operation="increment_ttl"
+                )
+            return int(value) if value is not None else None
+        except Exception as exc:
+            logger.debug("increment_failed", key=key, error=str(exc))
+            return None
+
     async def cache(
         self,
         key: str,
@@ -313,6 +464,18 @@ class UpstashRedisProvider(Provider):
         if value is not None:
             await self.set(key, value, ttl_seconds=ttl_seconds, namespace=namespace)
         return value
+
+
+def _result_of(payload: Any) -> Any:
+    """Unwrap Upstash's `{"result": ...}` envelope.
+
+    Every REST reply is wrapped, and a caller comparing the envelope to "OK"
+    silently never matches — which reads as "the lock was already held" rather
+    than "we misread the reply".
+    """
+    if isinstance(payload, dict) and "result" in payload:
+        return payload["result"]
+    return payload
 
 
 def _namespaced(key: str, namespace: str) -> str:
