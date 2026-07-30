@@ -251,61 +251,102 @@
 
 /* --- Aurora ---------------------------------------------------------------
  *
- * Four soft lights over the field, drawn once on the body and shared by every
- * surface — so the console and the docs sit on the same page the landing does
- * rather than each carrying their own approximation of it.
+ * A full-field aurora: no part of the page is flat.
  *
- * `fixed`, not `absolute`: the aurora belongs to the viewport, so it stays put
- * while content scrolls past. Attaching it to the document would make it slide
- * away and leave long pages flat below the fold.
+ * The first attempt used four corner lights that faded to transparent at 60%,
+ * which left untouched field between them — measurably strong where the lights
+ * landed, and plainly the base colour everywhere else. That reads as four
+ * glows on a green page, not as an aurora.
  *
- * Painted with CSS rather than driven from JavaScript. The divider taught that
- * lesson expensively — an entrance that never ran left it invisible, and a
- * background that fails the same way is a page that silently loses its
- * identity.
+ * So this is built in two parts. A vertical wash gives the whole page a top-to
+ * -bottom gradient, so there is no flat region anywhere by construction. Six
+ * overlapping lights then sit on it, each reaching past the midpoint so their
+ * edges meet rather than leaving gaps.
+ *
+ * Drawn once on the body and inherited by every surface, so the console, docs
+ * and dashboard sit on the same page the landing does.
+ *
+ * `fixed`, so it belongs to the viewport and stays put while content scrolls
+ * past. Attached to the document it would slide away and leave everything
+ * below the fold flat — the exact problem this replaces.
+ *
+ * CSS throughout. The divider was gated on a JavaScript entrance that never
+ * ran and shipped invisible; a background failing that way is a page that
+ * silently loses its identity.
  */
 body::before {
   content: "";
   position: fixed;
-  inset: -20vmax;
+  inset: -25vmax;
   z-index: -1;
   pointer-events: none;
   background:
+    /* Lights first — they sit over the wash below. Each is large enough that
+     * its falloff overlaps its neighbours', which is what makes the field read
+     * as continuous rather than as separate sources. */
     radial-gradient(
-      42vmax 34vmax at 12% 8%,
-      color-mix(in oklab, var(--color-aurora-warm) 62%, transparent),
-      transparent 62%
+      58vmax 46vmax at 8% 4%,
+      color-mix(in oklab, var(--color-aurora-warm) 88%, transparent),
+      transparent 72%
     ),
     radial-gradient(
-      50vmax 38vmax at 88% 12%,
-      color-mix(in oklab, var(--color-aurora-deep) 26%, transparent),
-      transparent 60%
+      62vmax 50vmax at 92% 10%,
+      color-mix(in oklab, var(--color-aurora-deep) 42%, transparent),
+      transparent 70%
     ),
     radial-gradient(
-      44vmax 40vmax at 78% 82%,
-      color-mix(in oklab, var(--color-aurora-warm) 40%, transparent),
-      transparent 62%
+      54vmax 48vmax at 50% 42%,
+      color-mix(in oklab, var(--color-aurora-warm) 55%, transparent),
+      transparent 74%
     ),
     radial-gradient(
-      38vmax 34vmax at 18% 92%,
-      color-mix(in oklab, var(--color-aurora-deep) 22%, transparent),
-      transparent 60%
+      60vmax 52vmax at 84% 78%,
+      color-mix(in oklab, var(--color-aurora-warm) 70%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      56vmax 46vmax at 10% 88%,
+      color-mix(in oklab, var(--color-aurora-deep) 38%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      48vmax 44vmax at 46% 100%,
+      color-mix(in oklab, var(--color-aurora-deep) 30%, transparent),
+      transparent 72%
+    ),
+    /* The wash. Opaque, so it is the floor of the composite — this is what
+     * guarantees no flat area regardless of where the lights fall. */
+    linear-gradient(
+      168deg,
+      color-mix(in oklab, var(--color-aurora-warm) 40%, var(--color-background)) 0%,
+      /* Never returns to the flat base. The first version passed through pure
+       * background near the upper third, and that one band read as a seam
+       * across an otherwise continuous field — measured at a delta of 5 per
+       * channel where everywhere else was 15 or more. */
+      color-mix(in oklab, var(--color-aurora-warm) 20%, var(--color-background)) 32%,
+      /* The floor. Every stop keeps at least this much tint, so no band of the
+       * page can fall back to the flat base — the weakest point measured 4 per
+       * channel before this stop existed, against 15+ everywhere else, and
+       * that one band read as a seam. */
+      color-mix(in oklab, var(--color-aurora-deep) 17%, var(--color-background)) 52%,
+      color-mix(in oklab, var(--color-aurora-deep) 24%, var(--color-background)) 74%,
+      color-mix(in oklab, var(--color-aurora-deep) 34%, var(--color-background)) 100%
     );
   /* Blurring the composite rather than each stop: the lights bleed into one
-   * another instead of overlapping as four distinct circles, which is the
+   * another instead of overlapping as distinct circles, which is the
    * difference between an aurora and a set of spotlights. */
-  filter: blur(48px) saturate(112%);
-  animation: molthood-aurora 34s ease-in-out infinite alternate;
+  filter: blur(64px) saturate(115%);
+  animation: molthood-aurora 40s ease-in-out infinite alternate;
 }
 
 @keyframes molthood-aurora {
   from {
-    transform: translate3d(0, 0, 0) scale(1);
+    transform: translate3d(0, 0, 0) scale(1.04);
   }
   to {
-    /* Small and slow. A background that can be caught moving stops being a
-     * background and becomes something to look at. */
-    transform: translate3d(-2%, 1.5%, 0) scale(1.06);
+    /* Small and slow. A background that can be caught moving has stopped
+     * being a background. */
+    transform: translate3d(-2.5%, 2%, 0) scale(1.1);
   }
 }
 
