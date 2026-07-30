@@ -577,3 +577,86 @@ export type SubjectListResponse = {
   /** How many have been looked at more than once. */
   revisited: number;
 };
+
+
+/** One section of a rendered report. */
+export type ReportSection = {
+  heading: string;
+  body: string;
+};
+
+/**
+ * A file an execution produced.
+ *
+ * `content` is absent from listings on purpose — twenty artifacts must not
+ * mean twenty payloads over the wire. Fetch the download URL for bytes.
+ */
+export type ExecutionArtifact = {
+  id: string;
+  execution_id: string | null;
+  kind: "report" | "data" | "chart" | "image" | "table" | "bundle" | "log";
+  filename: string;
+  media_type: string;
+  size_bytes: number;
+  digest: string;
+  label: string;
+  description: string | null;
+  is_text: boolean;
+  created_at: string;
+};
+
+export type ExecutionReport = {
+  title: string;
+  sections: ReportSection[];
+  artifacts: ExecutionArtifact[];
+};
+
+export type ArtifactListResponse = {
+  execution_id: string;
+  items: ExecutionArtifact[];
+  total: number;
+};
+
+/** One side of a comparison, reduced to what the verdict rests on. */
+export type ComparisonSide = {
+  execution_id: string | null;
+  label: string;
+  target: string | null;
+  address: string | null;
+  score: number | null;
+  level: string | null;
+  checks: number;
+};
+
+export type SharedCheck = {
+  kind: string;
+  label: string;
+  left: { state: string; value: unknown };
+  right: { state: string; value: unknown };
+  agrees: boolean;
+};
+
+/**
+ * A check that could not be compared.
+ *
+ * Never a difference between the subjects — the difference is in the coverage.
+ * Rendering these alongside the shared checks would imply the opposite.
+ */
+export type IncomparableCheck = {
+  kind: string;
+  label: string;
+  ran_on: "left" | "right" | "both";
+  reason: string;
+};
+
+export type Comparison = {
+  left: ComparisonSide;
+  right: ComparisonSide;
+  shared: SharedCheck[];
+  not_comparable: IncomparableCheck[];
+  shared_checks: number;
+  /** `null` means no verdict was possible, which is not a tie. */
+  verdict: "left" | "right" | "tie" | null;
+  verdict_reason: string;
+  warnings: string[];
+};

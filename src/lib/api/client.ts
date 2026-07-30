@@ -25,6 +25,9 @@ import type {
   Watch,
   WatchListResponse,
   WorkflowPlan,
+  ArtifactListResponse,
+  Comparison,
+  ExecutionReport,
 } from "@/lib/api/types";
 
 export const API_BASE_URL =
@@ -297,4 +300,38 @@ export const api = {
       `/watches/${encodeURIComponent(id)}/${paused ? "pause" : "resume"}`,
       { method: "POST" },
     ),
+
+  report: (executionId: string, signal?: AbortSignal) =>
+    request<ExecutionReport>(
+      `/reports/${encodeURIComponent(executionId)}`,
+      { signal },
+    ),
+
+  artifacts: (executionId: string, signal?: AbortSignal) =>
+    request<ArtifactListResponse>(
+      `/reports/${encodeURIComponent(executionId)}/artifacts`,
+      { signal },
+    ),
+
+  compare: (executionId: string, otherId: string, signal?: AbortSignal) =>
+    request<Comparison>(
+      `/reports/${encodeURIComponent(executionId)}/compare/${encodeURIComponent(otherId)}`,
+      { signal },
+    ),
 };
+
+/**
+ * Where an artifact's bytes live.
+ *
+ * Built rather than fetched: the download is a plain link the browser follows,
+ * so it renders markdown inline and saves a bundle — which a JSON envelope
+ * around base64 could never do.
+ */
+export function artifactUrl(
+  executionId: string,
+  filename: string,
+  { download = false }: { download?: boolean } = {},
+): string {
+  const base = `${API_BASE_URL}${API_PREFIX}/reports/${encodeURIComponent(executionId)}/artifacts/${encodeURIComponent(filename)}`;
+  return download ? `${base}?download=true` : base;
+}

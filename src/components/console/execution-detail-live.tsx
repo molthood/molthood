@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Check, Link2 } from "lucide-react";
 
 import { AnalysisResult } from "@/components/console/analysis-result";
+import { ExecutionReportView } from "@/components/console/execution-report";
 import { ApiKeyPanel } from "@/components/console/api-key-panel";
 import { ErrorState } from "@/components/console/error-state";
 import { Button } from "@/components/ui/button";
@@ -58,7 +59,13 @@ function ExecutionDetailLive({ executionId }: { executionId: string }) {
       ) : execution.error ? (
         <ErrorState error={execution.error} onRetry={execution.refetch} />
       ) : execution.data ? (
-        <AnalysisResult result={execution.data} />
+        <>
+          <AnalysisResult result={execution.data} />
+          {/* The findings above, rendered as the report a reader can take
+              away. Derived on read rather than stored, so it always matches
+              the execution it describes. */}
+          <ExecutionReportView executionId={executionId} />
+        </>
       ) : null}
     </div>
   );
