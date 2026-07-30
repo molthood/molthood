@@ -469,10 +469,18 @@ def test_a_missing_key_does_not_make_the_platform_degraded(
 
     A provider with no key was never expected to work here, so reporting
     degraded would mark every fresh deployment as broken.
-    """
-    response = anonymous_client.get("/api/health")
 
-    assert response.json()["status"] == "ok"
+    Asserted against the *provider* section rather than the overall status.
+    Overall status also reflects storage, and a test that reads it is really
+    asserting two things — which is how this passed locally, where the
+    developer's database happened to have a schema, and failed in CI, where it
+    did not. The test's subject is keys.
+    """
+    providers = anonymous_client.get("/api/health").json()["providers"]
+
+    assert providers["unavailable"] == []
+    # Several are missing keys; none of them counts as a degradation.
+    assert providers["usable"] < providers["total"]
 
 
 def test_health_says_which_storage_is_actually_answering(
