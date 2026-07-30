@@ -20,6 +20,7 @@ from fastapi import APIRouter, Path, Query, Response
 from app.api.auth import CurrentKey
 from app.api.deps import ExecutionStoreDep
 from app.core.exceptions import NotFoundError
+from app.engine.analytics import Event, track
 from app.engine.compare import compare
 from app.engine.report import Report, build_report
 from app.repositories.api_keys import KeyIdentity
@@ -60,7 +61,9 @@ async def get_report(
     identity: CurrentKey,
     execution_id: str = Path(description="Execution id."),
 ) -> dict[str, Any]:
-    return _report_for(store, execution_id, identity).to_dict()
+    report = _report_for(store, execution_id, identity)
+    await track(Event.REPORT_VIEWED, key_id=identity.id, sections=len(report.sections))
+    return report.to_dict()
 
 
 @router.get(
@@ -113,6 +116,14 @@ async def download_artifact(
             },
         )
 
+    await track(
+        Event.ARTIFACT_DOWNLOADED,
+        key_id=identity.id,
+        kind=artifact.kind.value,
+        size_bytes=artifact.size_bytes,
+        inline=not download,
+    )
+
     disposition = "attachment" if download else "inline"
     return Response(
         content=artifact.decoded(),
@@ -150,15 +161,26 @@ async def compare_executions(
     from app.api.v1.endpoints.execute import to_response
 
     scope = _scope(identity)
-    pair = []
+    pair: list[dict[str, Any]] = []
     for wanted in (execution_id, other_id):
-        result = store.get_result(wanted, scope)
-        if result is None:
+        stored = store.get_result(wanted, scope)
+        if stored is None:
             raise NotFoundError(
                 f"No execution found with id '{wanted}'.",
                 details={"execution_id": wanted},
                 suggested_action="Both executions must exist and belong to this key.",
             )
-        pair.append(to_response(result).model_dump(mode="json"))
+        pair.append(to_response(stored).model_dump(mode="json"))
 
-    return compare(pair[0], pair[1]).to_dict()
+    comparison = compare(pair[0], pair[1])
+    await track(
+        Event.COMPARISON_RUN,
+        key_id=identity.id,
+        shared_checks=len(comparison.shared),
+        incomparable=len(comparison.not_comparable),
+        # Whether a verdict was reachable is the interesting product question:
+        # too many withheld verdicts means subjects are not being checked
+        # consistently enough to compare.
+        verdict=comparison.verdict or "withheld",
+    )
+    return comparison.to_dict()

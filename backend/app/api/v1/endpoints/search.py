@@ -19,6 +19,7 @@ from fastapi import APIRouter, Query
 
 from app.api.auth import CurrentKey
 from app.api.deps import ExecutionStoreDep
+from app.engine.analytics import Event, track
 from app.engine.labels import describe_source
 from app.repositories.api_keys import KeyIdentity
 
@@ -131,6 +132,15 @@ async def search(
             "total": len(subjects),
         },
     ]
+
+    # The query itself is never sent — only how many terms and what was found.
+    # A search term is content, and content does not leave the platform.
+    await track(
+        Event.SEARCH_PERFORMED,
+        key_id=identity.id,
+        terms=len(terms),
+        results=len(executions) + len(subjects),
+    )
 
     return {
         "query": q,
