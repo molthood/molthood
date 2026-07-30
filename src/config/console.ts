@@ -1,4 +1,5 @@
 import {
+  ArrowLeftRight,
   Bot,
   Eye,
   FolderKanban,
@@ -44,6 +45,12 @@ export const consoleNav: ConsoleNavItem[] = [
     href: "/tasks",
     icon: Sparkles,
     description: "Submit one task and get a structured report.",
+  },
+  {
+    label: "Compare",
+    href: "/compare",
+    icon: ArrowLeftRight,
+    description: "Two subjects side by side, with the gaps named.",
   },
   {
     label: "Executions",
