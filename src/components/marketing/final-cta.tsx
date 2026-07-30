@@ -18,7 +18,7 @@ import { siteConfig } from "@/config/site";
  */
 function FinalCta() {
   return (
-    <Section spacing="lg" containerSize="xl" className="border-t border-border">
+    <Section spacing="lg" containerSize="xl" divided>
       <Container size="xl">
         <Reveal preset="fadeUp">
           <div className="flex flex-col items-start gap-6 rounded-card border border-border bg-surface px-6 py-10 sm:px-10 sm:py-12 lg:flex-row lg:items-center lg:justify-between">

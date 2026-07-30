@@ -24,7 +24,7 @@ const commitments = [
 
 function ChainSection() {
   return (
-    <Section spacing="lg" containerSize="lg" className="border-t border-border">
+    <Section spacing="lg" containerSize="lg" divided>
       <Reveal className="flex flex-col items-center text-center">
         <Eyebrow>Network</Eyebrow>
         <Heading as="h2" size="xl" className="mt-4 max-w-2xl">

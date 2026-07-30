@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils";
  */
 function FaqSection() {
   return (
-    <Section spacing="md" containerSize="xl" className="border-t border-border">
+    <Section spacing="md" containerSize="xl" divided>
       <Container size="xl">
         <div className="grid gap-10 lg:grid-cols-[20rem_1fr]">
           <Reveal preset="fadeUp">

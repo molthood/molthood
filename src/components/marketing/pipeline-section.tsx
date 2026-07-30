@@ -7,7 +7,7 @@ import { Reveal } from "@/components/motion/reveal";
 
 function PipelineSection() {
   return (
-    <Section spacing="lg" containerSize="xl" id="pipeline" className="border-t border-border">
+    <Section spacing="lg" containerSize="xl" id="pipeline" divided>
       <Reveal>
         <SectionHeading
           eyebrow="Execution Pipeline"

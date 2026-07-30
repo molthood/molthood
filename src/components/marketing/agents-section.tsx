@@ -13,7 +13,7 @@ function AgentsSection() {
       spacing="lg"
       containerSize="xl"
       id="agents"
-      className="border-t border-border"
+      divided
     >
       <Reveal>
         <SectionHeading

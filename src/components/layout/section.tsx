@@ -1,6 +1,7 @@
 import * as React from "react";
 
 import { Container, type ContainerProps } from "@/components/layout/container";
+import { SectionDivider } from "@/components/layout/divider";
 import { cn } from "@/lib/utils";
 
 const sectionSpacing = {
@@ -12,6 +13,14 @@ const sectionSpacing = {
 
 export type SectionProps = React.ComponentProps<"section"> & {
   spacing?: keyof typeof sectionSpacing;
+  /**
+   * Separate this section from the one above with the brand divider.
+   *
+   * Replaces `border-t border-border`, which was a uniform edge-to-edge rule
+   * repeated down the page — the same default-`<hr>` reading, five times over,
+   * where one instance would already have been noticeable.
+   */
+  divided?: boolean;
   containerSize?: ContainerProps["size"];
   /** Skip the inner Container when the section manages its own layout. */
   bare?: boolean;
@@ -25,6 +34,7 @@ function Section({
   spacing = "md",
   containerSize = "lg",
   bare = false,
+  divided = false,
   containerClassName,
   ...props
 }: SectionProps) {
@@ -34,6 +44,7 @@ function Section({
       className={cn("relative w-full", sectionSpacing[spacing], className)}
       {...props}
     >
+      {divided ? <SectionDivider className="absolute inset-x-0 top-0" /> : null}
       {bare ? (
         children
       ) : (

@@ -15,7 +15,7 @@ import { Reveal } from "@/components/motion/reveal";
  */
 function LiveSection() {
   return (
-    <Section spacing="md" containerSize="xl" className="border-t border-border">
+    <Section spacing="md" containerSize="xl" divided>
       <Container size="xl">
         <Reveal preset="fadeUp">
           <div className="flex max-w-2xl flex-col gap-3">
