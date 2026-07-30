@@ -25,6 +25,9 @@
    * field has depth without becoming a second colour. */
   --color-aurora-warm: #f0ff5a;
   --color-aurora-deep: #3d480f;
+  /* A cooler deep, so the field varies in hue and not only in lightness. One
+   * hue at several brightnesses reads as a wash; two reads as light. */
+  --color-aurora-cool: #16351f;
 
   /* Ink — everything that is not the field is black. */
   --color-foreground: #08120d;
@@ -291,7 +294,7 @@ body::before {
     ),
     radial-gradient(
       62vmax 50vmax at 92% 10%,
-      color-mix(in oklab, var(--color-aurora-deep) 42%, transparent),
+      color-mix(in oklab, var(--color-aurora-cool) 46%, transparent),
       transparent 70%
     ),
     radial-gradient(
@@ -306,7 +309,7 @@ body::before {
     ),
     radial-gradient(
       56vmax 46vmax at 10% 88%,
-      color-mix(in oklab, var(--color-aurora-deep) 38%, transparent),
+      color-mix(in oklab, var(--color-aurora-cool) 40%, transparent),
       transparent 70%
     ),
     radial-gradient(
@@ -354,4 +357,32 @@ body::before {
   body::before {
     animation: none;
   }
+}
+
+
+/* --- Grain ----------------------------------------------------------------
+ *
+ * A large smooth gradient banding on an 8-bit display is the tell that
+ * separates a rendered background from a designed one: the steps between
+ * neighbouring shades become visible as rings. A fine noise breaks them up by
+ * dithering the boundary, which is why every gradient-heavy interface worth
+ * copying has one.
+ *
+ * Inline SVG rather than an image file: it is a few hundred bytes, needs no
+ * request, and cannot arrive after the paint it exists to fix.
+ *
+ * Very low opacity. Grain that can be seen is texture; grain that can only be
+ * measured is polish.
+ */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Multiply so the grain darkens rather than fogs — added light on a bright
+   * field would wash it out instead of texturing it. */
+  mix-blend-mode: multiply;
 }

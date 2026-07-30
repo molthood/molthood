@@ -31,8 +31,16 @@ function LogoMark({ className, size = 32, ...props }: LogoMarkProps) {
       <Image
         src="/logo.png"
         alt=""
-        width={size}
-        height={size}
+        // Rendered at three times the layout size and constrained by the
+        // wrapper. `next/image` emits only 1x and 2x for a fixed width, so on
+        // a 3x display — most phones — the mark was being upscaled from 64px
+        // and lost its edges. Asking for the pixels directly is the only way
+        // to be sharp on every device.
+        width={size * 3}
+        height={size * 3}
+        // The source is 7 KB. Compressing a mark this small to save bytes
+        // trades the one thing it has to do.
+        quality={100}
         priority
         // Decorative here: the wordmark beside it already names the product,
         // and a screen reader announcing "Molthood Molthood" is worse than
