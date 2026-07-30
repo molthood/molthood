@@ -477,10 +477,21 @@ def test_a_missing_key_does_not_make_the_platform_degraded(
     did not. The test's subject is keys.
     """
     providers = anonymous_client.get("/api/health").json()["providers"]
+    states = {item["name"]: item["state"] for item in providers["items"]}
 
-    assert providers["unavailable"] == []
-    # Several are missing keys; none of them counts as a degradation.
-    assert providers["usable"] < providers["total"]
+    # Several providers have no credential here.
+    assert "missing_key" in states.values()
+
+    # None of them is reported as unavailable. That is the claim: a provider
+    # nobody configured has not stopped working, it was never started.
+    #
+    # Asserted per provider rather than as `unavailable == []`, because a
+    # keyless provider that probes over the network can genuinely be
+    # unavailable in CI — which is a real outage, not a missing key, and the
+    # two must not be conflated in the test any more than in the product.
+    for name, state in states.items():
+        if state == "missing_key":
+            assert name not in providers["unavailable"]
 
 
 def test_health_says_which_storage_is_actually_answering(
