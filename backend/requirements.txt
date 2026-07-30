@@ -24,6 +24,11 @@ pypdf==6.14.2
 markdownify==0.14.1
 readability-lxml==0.8.1
 
+# --- Error tracking (optional) ---
+# Without SENTRY_DSN the SDK is never initialised, so this is dead weight on a
+# deployment that does not want it — and one line to remove.
+sentry-sdk[fastapi]==2.20.0
+
 # --- Logging ---
 structlog==24.4.0
 

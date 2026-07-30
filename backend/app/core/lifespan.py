@@ -47,6 +47,12 @@ def _warn_about_missing_providers(providers: Any) -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
 
+    # Before anything else that can fail, so a startup error is reported
+    # rather than lost to a process that never finished booting.
+    from app.core.monitoring import setup as setup_monitoring
+
+    setup_monitoring()
+
     agent_registry.autoload()
 
     # A failure here must not stop the server. Every analysis works without

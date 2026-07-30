@@ -190,6 +190,11 @@ class Settings(BaseSettings):
         default=None, alias="QSTASH_NEXT_SIGNING_KEY"
     )
 
+    #: Error tracking. Optional: with no DSN the SDK is never initialised and
+    #: nothing changes. Events are scrubbed before sending — see
+    #: `core/monitoring.py`.
+    sentry_dsn: SecretStr | None = Field(default=None, alias="SENTRY_DSN")
+
     #: Product analytics. Never affects a request; failures are swallowed.
     posthog_host: str = Field(default="https://us.i.posthog.com", alias="POSTHOG_HOST")
     posthog_api_key: SecretStr | None = Field(default=None, alias="POSTHOG_API_KEY")
@@ -348,6 +353,7 @@ class Settings(BaseSettings):
         "qstash_current_signing_key",
         "qstash_next_signing_key",
         "posthog_api_key",
+        "sentry_dsn",
         mode="before",
     )
     @classmethod
