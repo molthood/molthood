@@ -231,6 +231,57 @@ class QStashProvider(Provider):
             self.name, Capability.QUEUE, data={"schedules": items}
         )
 
+    async def dead_letters(self, *, limit: int = 25) -> ProviderResult:
+        """Messages that failed every retry and stopped being attempted.
+
+        Worth surfacing rather than leaving to a dashboard, because a
+        dead-letter queue is the only place a *silently* dropped job appears.
+        Everything else about deferred work looks identical whether it ran or
+        not: the caller got its acknowledgement either way, and nothing in this
+        process ever learns the delivery failed.
+
+        Reported as a list rather than a count. "Three failed" tells an
+        operator something is wrong; the message and its response tell them
+        what.
+        """
+        if not self.state.is_usable:
+            return ProviderResult.failure(
+                self.name,
+                Capability.QUEUE,
+                self._unavailable_detail(),
+                error_code=self.state.value,
+            )
+
+        client = await self.http()
+        payload = await client.get_json(
+            "/v2/dlq", params={"count": max(1, min(limit, 100))}, operation="dead_letters"
+        )
+
+        raw = payload.get("messages") if isinstance(payload, dict) else payload
+        messages = raw if isinstance(raw, list) else []
+
+        return ProviderResult.success(
+            self.name,
+            Capability.QUEUE,
+            data={
+                "messages": [
+                    {
+                        "id": item.get("dlqId") or item.get("messageId"),
+                        "url": item.get("url"),
+                        "created_at": item.get("createdAt"),
+                        "response_status": item.get("responseStatus"),
+                        # The upstream's own words about why it refused. Kept
+                        # verbatim: a paraphrase of a delivery failure is how
+                        # an operator ends up debugging the wrong thing.
+                        "response_body": str(item.get("responseBody") or "")[:400],
+                    }
+                    for item in messages
+                    if isinstance(item, dict)
+                ],
+                "total": len(messages),
+            },
+        )
+
     async def cancel(self, schedule_id: str) -> ProviderResult:
         if not self.state.is_usable:
             return ProviderResult.failure(
