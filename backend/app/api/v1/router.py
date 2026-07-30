@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     keys,
     pipelines,
     providers,
+    reports,
     status,
     stream,
     tasks,
@@ -32,6 +33,7 @@ router.include_router(agents.router, prefix="/agents")
 router.include_router(executions.router, prefix="/executions")
 router.include_router(keys.router, prefix="/keys")
 router.include_router(pipelines.router, prefix="/pipelines")
+router.include_router(reports.router, prefix="/reports")
 router.include_router(providers.router, prefix="/providers")
 router.include_router(feed.router, prefix="/feed")
 router.include_router(hooks.router, prefix="/hooks")
