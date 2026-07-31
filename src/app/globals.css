@@ -29,6 +29,12 @@
    * hue at several brightnesses reads as a wash; two reads as light. */
   --color-aurora-cool: #16351f;
 
+  /* The wordmark. Green rather than black, as the brand asks — but the *deep*
+   * green, not the field's own. Measured against #aed92f: this is 5.99:1 and
+   * passes; the mid green is 2.28 and the light green is 1.00, which is
+   * invisible. "Brand green" and "readable" only overlap at this end. */
+  --color-wordmark: #3d480f;
+
   /* Ink — everything that is not the field is black. */
   --color-foreground: #08120d;
   --color-muted: #17200b;

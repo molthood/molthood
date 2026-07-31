@@ -64,7 +64,10 @@ function Logo({ className, markOnly = false, ...props }: LogoProps) {
       {markOnly ? (
         <span className="sr-only">{siteConfig.name}</span>
       ) : (
-        <span className="font-display text-[17px] font-bold tracking-[-0.015em] text-foreground">
+        <span
+          className="font-display text-[20px] leading-none font-bold tracking-[-0.02em]"
+          style={{ color: "var(--color-wordmark)" }}
+        >
           {siteConfig.name}
         </span>
       )}

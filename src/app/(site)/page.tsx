@@ -24,6 +24,11 @@ export const metadata: Metadata = {
     url: siteConfig.url,
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
+    // Declared rather than left to the file convention. A page that supplies
+    // its own `openGraph` object replaces the inherited one wholesale, so the
+    // generated image was being dropped exactly where it matters most — the
+    // link people actually share.
+    images: [{ url: "/opengraph-image.png", width: 1200, height: 630 }],
   },
 };
 
