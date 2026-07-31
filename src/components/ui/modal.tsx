@@ -4,6 +4,7 @@ import * as React from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
+import { useSurfaceThemeClass } from "@/components/layout/surface-theme";
 import { cn } from "@/lib/utils";
 
 const Modal = DialogPrimitive.Root;
@@ -17,7 +18,7 @@ function ModalOverlay({
   return (
     <DialogPrimitive.Overlay
       className={cn(
-        "fixed inset-0 z-50 bg-foreground/35 backdrop-blur-[2px]",
+        "fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]",
         "data-[state=open]:animate-in data-[state=open]:fade-in-0",
         "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
         className,
@@ -38,6 +39,10 @@ function ModalContent({
   hideClose = false,
   ...props
 }: ModalContentProps) {
+  // Portalled to the body, so the token scope of the surface it was opened
+  // from does not reach it through the DOM. Context does.
+  const surface = useSurfaceThemeClass();
+
   return (
     <DialogPrimitive.Portal>
       <ModalOverlay />
@@ -47,6 +52,7 @@ function ModalContent({
           "rounded-card border border-border-strong bg-surface shadow-xl",
           "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
           "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+          surface,
           className,
         )}
         {...props}

@@ -9,6 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { consoleNav } from "@/config/console";
 import { siteConfig } from "@/config/site";
+import { useSurfaceThemeClass } from "@/components/layout/surface-theme";
 import { cn } from "@/lib/utils";
 
 type CommandItem = {
@@ -128,12 +129,16 @@ function CommandPaletteDialog() {
 
   let renderedGroup = "";
 
+  // Portalled to the body, so the console's token scope does not reach it
+  // through the DOM. Context does.
+  const surface = useSurfaceThemeClass();
+
   return (
     <DialogPrimitive.Root open={open} onOpenChange={setOpen}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay
           className={cn(
-            "fixed inset-0 z-50 bg-foreground/35 backdrop-blur-[2px]",
+            "fixed inset-0 z-50 bg-black/60 backdrop-blur-[2px]",
             "data-[state=open]:animate-in data-[state=open]:fade-in-0",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
           )}
@@ -143,6 +148,7 @@ function CommandPaletteDialog() {
           className={cn(
             "fixed top-[12vh] left-1/2 z-50 w-[calc(100vw-2rem)] max-w-xl -translate-x-1/2",
             "overflow-hidden rounded-card border border-border-strong bg-surface shadow-xl",
+            surface,
             "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
           )}

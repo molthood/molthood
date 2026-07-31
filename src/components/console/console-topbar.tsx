@@ -4,6 +4,7 @@ import * as React from "react";
 import { PanelLeft, Search } from "lucide-react";
 
 import { Breadcrumbs } from "@/components/console/breadcrumbs";
+import { BackToLanding } from "@/components/layout/back-to-landing";
 import { useCommandPalette } from "@/components/console/command-palette";
 import { NotificationsMenu } from "@/components/console/notifications-menu";
 import { UserMenu } from "@/components/console/user-menu";
@@ -21,8 +22,8 @@ function ConsoleTopbar({ onOpenSidebar, className }: ConsoleTopbarProps) {
   return (
     <header
       className={cn(
-        "molthood-on-dark sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3",
-        "border-b border-border bg-background px-4 sm:px-6",
+        "sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3",
+        "border-b border-border bg-background/85 px-4 backdrop-blur-md sm:px-6",
         className,
       )}
     >
@@ -35,7 +36,9 @@ function ConsoleTopbar({ onOpenSidebar, className }: ConsoleTopbarProps) {
         <PanelLeft className="size-[18px]" />
       </button>
 
-      <Breadcrumbs className="hidden sm:block" />
+      <BackToLanding />
+
+      <Breadcrumbs className="hidden md:block" />
 
       {/*
        * The search field is a button, not an input: typing happens inside the

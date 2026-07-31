@@ -45,8 +45,14 @@ function Navbar() {
         // changed colour on scroll would flash from black to black — the
         // transition existed to introduce a background that is now always
         // there.
-        "sticky top-0 z-50 w-full bg-black transition-shadow duration-200 ease-out",
-        scrolled || open ? "shadow-[0_1px_0_0_rgba(255,255,255,0.12)]" : "",
+        //
+        // `molthood-dark` rather than a hand-picked set of inverted classes.
+        // The bar was written twice — once here in literal colours, once in
+        // the console topbar — and the two drifted. Now both take the palette
+        // and `text-muted` means the same thing on either.
+        "molthood-dark sticky top-0 z-50 w-full bg-background",
+        "transition-shadow duration-200 ease-out",
+        scrolled || open ? "shadow-[0_1px_0_0_var(--color-border)]" : "",
       )}
     >
       <Container size="xl">
@@ -59,7 +65,7 @@ function Navbar() {
             className="rounded-md transition-opacity hover:opacity-80"
             aria-label={`${siteConfig.name} home`}
           >
-            <Logo onDark />
+            <Logo />
           </a>
 
           <ul className="hidden items-center gap-1 md:flex">
@@ -77,8 +83,8 @@ function Navbar() {
                   className={cn(
                     "relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold transition-colors duration-150",
                     isActive(pathname, item.href) && !item.external
-                      ? "text-background"
-                      : "text-background/60 hover:text-background",
+                      ? "text-primary"
+                      : "text-muted hover:text-foreground",
                   )}
                 >
                   {item.label}
@@ -92,7 +98,7 @@ function Navbar() {
                   {isActive(pathname, item.href) && !item.external ? (
                     <motion.span
                       layoutId="nav-active"
-                      className="absolute inset-x-3 -bottom-px h-px bg-background"
+                      className="bg-primary absolute inset-x-3 -bottom-px h-px"
                       transition={
                         reduceMotion
                           ? { duration: 0 }
@@ -110,9 +116,7 @@ function Navbar() {
             <Button
               asChild
               size="sm"
-              // The default is ink on the field. On black that is invisible,
-              // so the pair inverts: the field becomes the button.
-              className="bg-background text-foreground hover:bg-surface-raised hidden border-transparent sm:inline-flex"
+              className="hidden sm:inline-flex"
             >
               <Link href={siteConfig.links.console}>Open Console</Link>
             </Button>
@@ -123,7 +127,7 @@ function Navbar() {
               aria-expanded={open}
               aria-controls="mobile-nav"
               aria-label={open ? "Close menu" : "Open menu"}
-              className="text-background/70 hover:text-background inline-flex size-9 items-center justify-center rounded-md transition-colors hover:bg-white/10 md:hidden"
+              className="text-muted hover:text-foreground hover:bg-surface-raised inline-flex size-9 items-center justify-center rounded-md transition-colors md:hidden"
             >
               {open ? <X className="size-5" /> : <Menu className="size-5" />}
             </button>
@@ -144,7 +148,7 @@ function Navbar() {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="overflow-hidden border-t border-white/10 bg-black md:hidden"
+            className="border-border bg-background overflow-hidden border-t md:hidden"
           >
             <Container size="xl" className="py-4">
               <ul className="flex flex-col gap-1">
@@ -157,8 +161,8 @@ function Navbar() {
                       className={cn(
                         "flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-semibold transition-colors",
                         isActive(pathname, item.href) && !item.external
-                          ? "text-background bg-white/10"
-                          : "text-background/60 hover:text-background hover:bg-white/5",
+                          ? "text-primary bg-surface-raised"
+                          : "text-muted hover:text-foreground hover:bg-surface",
                       )}
                     >
                       {item.label}
@@ -171,7 +175,7 @@ function Navbar() {
               </ul>
               <Button
                 asChild
-                className="bg-background text-foreground hover:bg-surface-raised mt-4 w-full border-transparent sm:hidden"
+                className="mt-4 w-full sm:hidden"
               >
                 <Link href={siteConfig.links.console}>Open Console</Link>
               </Button>

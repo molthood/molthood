@@ -32,16 +32,13 @@ function ConsoleSidebar({ className, ...props }: ConsoleSidebarProps) {
       )}
       {...props}
     >
-      {/* Black, because it sits in the same 64px band as the topbar beside it.
-          Left on the field it read as a green square notched into the header
-          rather than as the left end of one bar. */}
-      <div className="molthood-on-dark flex h-16 shrink-0 items-center border-r border-b border-border bg-background px-5">
+      <div className="flex h-16 shrink-0 items-center border-b border-border px-5">
         {/* Absolute, to the site. On this host "/" is the console's own
             dashboard — which the Home entry below already reaches — so a
             relative mark left a visitor with no way back to Molthood except
             the address bar. */}
         <a href={SITE_URL} className="transition-opacity hover:opacity-80">
-          <Logo onDark />
+          <Logo />
         </a>
       </div>
 

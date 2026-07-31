@@ -55,17 +55,18 @@ function LogoMark({ className, size = 32, ...props }: LogoMarkProps) {
 export type LogoProps = React.ComponentProps<"div"> & {
   /** Hide the wordmark and show the mark alone (collapsed sidebar, mobile). */
   markOnly?: boolean;
-  /**
-   * The wordmark sits on a dark surface.
-   *
-   * Not cosmetic. The deep brand green reads at 5.99:1 on the field and 2.13:1
-   * on black — the same colour is legible on one and nearly invisible on the
-   * other, so the surface has to be declared rather than assumed.
-   */
-  onDark?: boolean;
 };
 
-function Logo({ className, markOnly = false, onDark = false, ...props }: LogoProps) {
+/**
+ * The mark and the wordmark, identical on every surface.
+ *
+ * There is no `onDark` prop. The wordmark reads `--color-wordmark`, which the
+ * `.molthood-dark` scope redefines — so the same component is legible on the
+ * field and on black without any caller knowing which one it is standing on.
+ * The colour has to change (5.99:1 on the field, 2.13:1 on black for the deep
+ * green), but that is the palette's job, not the call site's.
+ */
+function Logo({ className, markOnly = false, ...props }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-2", className)} {...props}>
       <LogoMark />
@@ -74,11 +75,7 @@ function Logo({ className, markOnly = false, onDark = false, ...props }: LogoPro
       ) : (
         <span
           className="font-display text-[20px] leading-none font-bold tracking-[-0.02em]"
-          style={{
-            color: onDark
-              ? "var(--color-wordmark-on-dark)"
-              : "var(--color-wordmark)",
-          }}
+          style={{ color: "var(--color-wordmark)" }}
         >
           {siteConfig.name}
         </span>

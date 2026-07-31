@@ -55,7 +55,7 @@ export default function OverviewPage() {
         </p>
         <a
           href={CONSOLE_URL}
-          className="mt-4 inline-flex items-center gap-2 rounded-lg bg-foreground px-3.5 py-2 text-xs font-bold text-background transition-opacity hover:opacity-90"
+          className="mt-4 inline-flex items-center gap-2 bg-primary text-background hover:bg-primary-hover rounded-lg px-3.5 py-2 text-xs font-bold transition-colors"
         >
           Open the console
           <ArrowRight className="size-3.5" aria-hidden="true" />

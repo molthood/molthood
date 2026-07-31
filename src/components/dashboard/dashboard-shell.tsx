@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 import { Logo } from "@/components/brand/logo";
+import { BackToLanding } from "@/components/layout/back-to-landing";
+import { SurfaceTheme } from "@/components/layout/surface-theme";
 import { StatusBadge } from "@/components/dashboard/status-badge";
 import { dashboardNav } from "@/config/dashboard";
 import { CONSOLE_URL, DOCS_URL, SITE_URL } from "@/config/site";
@@ -26,9 +28,10 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   React.useEffect(() => setOpen(false), [pathname]);
 
   return (
-    <div className="min-h-dvh bg-background">
-      <header className="molthood-on-dark sticky top-0 z-40 border-b border-border bg-background">
-        <div className="mx-auto flex h-14 w-full max-w-[100rem] items-center gap-3 px-5 sm:px-8">
+    <SurfaceTheme theme="dark">
+    <div className="molthood-dark molthood-dark-page min-h-dvh bg-background">
+      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
+        <div className="mx-auto flex h-16 w-full max-w-[100rem] items-center gap-3 px-5 sm:px-8">
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -43,7 +46,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               once. The badge names which surface they are on. */}
           <span className="flex min-w-0 items-center gap-2">
             <a href={SITE_URL} className="transition-opacity hover:opacity-80">
-              <Logo onDark />
+              <Logo />
             </a>
             <Link
               href="/"
@@ -52,6 +55,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               Developers
             </Link>
           </span>
+
+          <BackToLanding className="ml-1" />
 
           <nav className="ml-auto flex items-center gap-4">
             <a
@@ -62,7 +67,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             </a>
             <a
               href={CONSOLE_URL}
-              className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-background transition-opacity hover:opacity-90"
+              className="bg-primary text-background hover:bg-primary-hover rounded-lg px-3 py-1.5 text-xs font-bold transition-colors"
             >
               Open console
             </a>
@@ -71,7 +76,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       </header>
 
       <div className="mx-auto flex w-full max-w-[100rem] gap-10 px-5 sm:px-8">
-        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-56 shrink-0 overflow-y-auto py-8 lg:block">
+        <aside className="sticky top-16 hidden h-[calc(100dvh-4rem)] w-56 shrink-0 overflow-y-auto py-8 lg:block">
           <Nav pathname={pathname} />
         </aside>
 
@@ -84,7 +89,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
             type="button"
             aria-label="Close navigation"
             onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-foreground/35 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
           />
           <div className="absolute inset-y-0 left-0 flex w-[min(18rem,84vw)] flex-col border-r border-border-strong bg-surface">
             <div className="flex items-center justify-between border-b border-border px-5 py-3.5">
@@ -107,6 +112,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         </div>
       ) : null}
     </div>
+    </SurfaceTheme>
   );
 }
 

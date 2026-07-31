@@ -9,6 +9,7 @@ import { CommandPaletteProvider } from "@/components/console/command-palette";
 import { ConsoleSidebar } from "@/components/console/console-sidebar";
 import { ConsoleTopbar } from "@/components/console/console-topbar";
 import { EASE_OUT } from "@/components/motion/motion-presets";
+import { SurfaceTheme } from "@/components/layout/surface-theme";
 import { ToastProvider } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
@@ -38,7 +39,9 @@ function ConsoleChrome({ children }: { children: React.ReactNode }) {
   }, [open]);
 
   return (
-    <div className="flex min-h-dvh bg-background">
+    // One class turns the whole application dark: every child reads the same
+    // tokens, so a card, a table and an empty state follow without being told.
+    <div className="molthood-dark molthood-dark-page flex min-h-dvh bg-background">
       <ConsoleSidebar className="sticky top-0 hidden h-dvh lg:flex" />
 
       <AnimatePresence>
@@ -54,7 +57,7 @@ function ConsoleChrome({ children }: { children: React.ReactNode }) {
               variants={{ hidden: { opacity: 0 }, visible: { opacity: 1 } }}
               transition={{ duration: 0.2 }}
               onClick={() => setOpen(false)}
-              className="absolute inset-0 bg-foreground/35 backdrop-blur-[2px]"
+              className="absolute inset-0 bg-black/60 backdrop-blur-[2px]"
               aria-hidden="true"
             />
             <motion.div
@@ -95,13 +98,17 @@ function ConsoleChrome({ children }: { children: React.ReactNode }) {
  */
 function ConsoleShell({ children }: { children: React.ReactNode }) {
   return (
-    <TooltipProvider delayDuration={200}>
-      <ToastProvider>
-        <CommandPaletteProvider>
-          <ConsoleChrome>{children}</ConsoleChrome>
-        </CommandPaletteProvider>
-      </ToastProvider>
-    </TooltipProvider>
+    // Outermost, because the providers below it own the portalled overlays
+    // that need to know which palette they were opened from.
+    <SurfaceTheme theme="dark">
+      <TooltipProvider delayDuration={200}>
+        <ToastProvider>
+          <CommandPaletteProvider>
+            <ConsoleChrome>{children}</ConsoleChrome>
+          </CommandPaletteProvider>
+        </ToastProvider>
+      </TooltipProvider>
+    </SurfaceTheme>
   );
 }
 

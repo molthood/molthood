@@ -3,6 +3,7 @@
 import * as React from "react";
 import * as TooltipPrimitive from "@radix-ui/react-tooltip";
 
+import { useSurfaceThemeClass } from "@/components/layout/surface-theme";
 import { cn } from "@/lib/utils";
 
 const TooltipProvider = TooltipPrimitive.Provider;
@@ -23,6 +24,10 @@ function Tooltip({
   align = "center",
   className,
 }: TooltipProps) {
+  // Portalled to the body, so the token scope of the surface it was opened
+  // from does not reach it through the DOM. Context does.
+  const surface = useSurfaceThemeClass();
+
   return (
     <TooltipPrimitive.Root>
       <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
@@ -36,6 +41,7 @@ function Tooltip({
             "text-[11px] font-bold text-background shadow-sm",
             "data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+            surface,
             className,
           )}
         >

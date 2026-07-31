@@ -35,10 +35,6 @@
    * invisible. "Brand green" and "readable" only overlap at this end. */
   --color-wordmark: #3d480f;
 
-  /* The same wordmark on black. 12.77:1 there, against 2.13:1 for the deep
-   * green — a brand colour is only legible on the surface it was chosen for. */
-  --color-wordmark-on-dark: #aed92f;
-
   /* Ink — everything that is not the field is black. */
   --color-foreground: #08120d;
   --color-muted: #17200b;
@@ -428,27 +424,66 @@ body::after {
 }
 
 
-/* The black header band, as a palette rather than a repaint.
+/* ------------------------------------------------------------------ *
+ * The dark surface
  *
- * Tailwind v4 compiles `text-muted` to `color: var(--color-muted)`, so
- * remapping the tokens on the header re-colours everything inside it —
- * breadcrumbs, the search chip, the kbd keys, the bell — without threading an
- * `onDark` prop through six components that have no reason to know.
+ * A palette, not a repaint. Tailwind v4 compiles every colour utility to
+ * `var(--color-*)`, so remapping the tokens on one element re-colours its
+ * whole subtree — cards, empty states, skeletons, tables, buttons, borders.
+ * Nothing below this rule knows which surface it is on, which is what makes
+ * a console page and a marketing page the same component.
  *
- * It also means the existing `bg-background/85` on the topbar resolves to
- * black at 85% here, so the blur and the translucency survive untouched.
- *
- * Dropdown panels are portalled to the body and therefore fall outside this
- * scope, which is correct: a menu is its own surface and stays on the field. */
-.molthood-on-dark {
+ * The green does not disappear; it stops being the field and becomes the
+ * accent. `--color-primary` is the only place it survives, which is why a
+ * primary button, an active nav item and a focus ring are all still green
+ * while the page behind them is black.
+ * ------------------------------------------------------------------ */
+.molthood-dark {
+  /* Pure black for the page. The raised surfaces carry a faint green cast so
+   * a card reads as belonging to this brand rather than to a generic dark
+   * theme — neutral greys beside a neon accent look like two products. */
   --color-background: #000000;
-  --color-surface: #0e0e0e;
-  --color-surface-raised: #1a1a1a;
-  --color-border: rgba(255, 255, 255, 0.14);
-  --color-border-strong: rgba(255, 255, 255, 0.3);
-  /* Text is the field green, the same pairing the site navbar uses, so the
-   * band reads as one bar across all four surfaces. 12.77:1 on black. */
-  --color-foreground: #aed92f;
-  --color-muted: #7d9d22;
+  --color-surface: #0a0c07;
+  --color-surface-raised: #141810;
+  --color-border: #262d1a;
+  --color-border-strong: #3d4a24;
+
+  /* Text. Off-white rather than the field green: green body copy on black is
+   * a terminal, not a product. 17.8:1 and 7.4:1 on black. */
+  --color-foreground: #eef2e6;
+  --color-muted: #98a187;
+
+  /* Here the accent inverts back. On the field the accent is ink because the
+   * field is bright; on black it is the field itself. 12.77:1. */
   --color-primary: #aed92f;
+  --color-primary-hover: #c2ec46;
+  --color-danger: #ff7a7a;
+
+  /* The wordmark follows the surface it sits on rather than carrying one
+   * colour everywhere: the deep green is 5.99:1 on the field and 2.13:1 on
+   * black, so the same brand colour is legible on one and gone on the other. */
+  --color-wordmark: #aed92f;
+
+  color: var(--color-foreground);
+  background-color: var(--color-background);
+}
+
+/* The page itself, not just the element. `html` and `body` are outside every
+ * React tree, so without this the field green shows through overscroll and the
+ * aurora keeps painting behind an app that is no longer green.
+ *
+ * Keyed on a separate marker rather than on `.molthood-dark`, and that
+ * distinction is the whole rule. The palette class is also worn by the site
+ * navbar, which appears on the landing page — matching it here turned the
+ * marketing hero black and switched off the aurora on a page that is supposed
+ * to be the field. A dark *element* and a dark *page* are different claims,
+ * so they get different classes. */
+html:has(.molthood-dark-page),
+html:has(.molthood-dark-page) body {
+  background-color: #000000;
+}
+
+html:has(.molthood-dark-page) body::before,
+html:has(.molthood-dark-page) body::after {
+  display: none;
 }

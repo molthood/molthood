@@ -28,7 +28,7 @@ export default function DocsHome() {
         <div className="mt-8 flex flex-wrap gap-3">
           <Link
             href="/getting-started/quickstart"
-            className="inline-flex items-center gap-2 rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-background transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-2 bg-primary text-background hover:bg-primary-hover rounded-lg px-4 py-2.5 text-sm font-bold transition-colors"
           >
             Quickstart
             <ArrowRight className="size-3.5" aria-hidden="true" />

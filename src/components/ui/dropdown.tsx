@@ -4,6 +4,7 @@ import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { Check } from "lucide-react";
 
+import { useSurfaceThemeClass } from "@/components/layout/surface-theme";
 import { cn } from "@/lib/utils";
 
 const Dropdown = DropdownMenuPrimitive.Root;
@@ -29,12 +30,16 @@ function DropdownContent({
   align = "end",
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
+  // Portalled to the body, so the token scope of the surface it was opened
+  // from does not reach it through the DOM. Context does.
+  const surface = useSurfaceThemeClass();
+
   return (
     <DropdownMenuPrimitive.Portal>
       <DropdownMenuPrimitive.Content
         sideOffset={sideOffset}
         align={align}
-        className={cn(panelClasses, className)}
+        className={cn(panelClasses, surface, className)}
         {...props}
       />
     </DropdownMenuPrimitive.Portal>
