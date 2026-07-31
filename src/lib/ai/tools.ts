@@ -138,6 +138,32 @@ export const TOOL_SCHEMAS = [
 export type ToolName = (typeof TOOL_SCHEMAS)[number]["function"]["name"];
 
 /** Human-readable status for the timeline the UI shows while a tool runs. */
+/**
+ * What a tool did, named for a reader rather than for the codebase.
+ *
+ * `analyse_subject` becomes "Token Analysis" or "Wallet Analysis" depending on
+ * what it was pointed at — one function, several jobs, and the badge should
+ * say the job.
+ */
+export function badgesFor(name: string, args: Record<string, unknown>): string[] {
+  if (name === "analyse_subject") {
+    const target = String(args.target ?? "");
+    const byTarget: Record<string, string[]> = {
+      token: ["Token Analysis", "Security Scan", "Market Data"],
+      wallet: ["Wallet Analysis", "Portfolio"],
+      contract: ["Contract Analysis", "Security Scan"],
+      site: ["Website Research", "Research"],
+      project: ["On-chain Analysis"],
+    };
+    return byTarget[target] ?? ["Analysis"];
+  }
+  if (name === "explain_transaction") return ["Transactions", "On-chain Analysis"];
+  if (name === "inspect_repository") return ["GitHub"];
+  if (name === "find_token") return ["Market Data"];
+  if (name === "chain_overview") return ["On-chain Analysis"];
+  return [];
+}
+
 export const TOOL_LABELS: Record<string, string> = {
   chain_overview: "Reading chain statistics",
   find_token: "Searching tracked tokens",

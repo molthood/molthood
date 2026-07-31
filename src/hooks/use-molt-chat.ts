@@ -42,6 +42,8 @@ export type Message = {
   /** Figures measured by the tools. Never parsed from the answer. */
   cards?: AnalysisCard[];
   sources?: SourceRef[];
+  /** What the tools did, in the reader's words. */
+  badges?: string[];
   confidence?: Confidence;
   actions?: SuggestedAction[];
   /** Set when the turn ended badly. The bubble renders a retry instead. */
@@ -266,6 +268,7 @@ export function useMoltChat() {
               status?: TimelineStep["status"];
               reason?: string;
               cards?: AnalysisCard[];
+              badges?: string[];
               sources?: SourceRef[];
               actions?: SuggestedAction[];
               level?: Confidence["level"];
@@ -311,6 +314,8 @@ export function useMoltChat() {
                 else steps.push(next);
                 return { ...message, steps };
               });
+            } else if (payload.type === "badges" && payload.badges) {
+              patchReply((message) => ({ ...message, badges: payload.badges }));
             } else if (payload.type === "cards" && payload.cards) {
               patchReply((message) => ({ ...message, cards: payload.cards }));
             } else if (payload.type === "sources" && payload.sources) {

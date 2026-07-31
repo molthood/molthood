@@ -155,7 +155,8 @@ function strip(text: string): string {
     .replace(/\[(.+?)\]\((.+?)\)/g, "$1 ($2)");
 }
 
-function parseCsv(source: string): string[][] {
+/** Quote-aware, so a cell containing a comma stays one cell. */
+export function parseCsv(source: string): string[][] {
   const rows: string[][] = [];
 
   for (const line of source.split("\n")) {

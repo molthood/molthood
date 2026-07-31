@@ -371,9 +371,11 @@ export function actionsFor(intent: Intent, subject?: string): SuggestedAction[] 
     case "address":
       return [
         { label: "Analyse the holders", prompt: `Who holds ${it}, and how concentrated is it?` },
-        { label: "What are the risks?", prompt: `What are the specific risks of ${it}, ranked?` },
-        { label: "Compare with another", prompt: `Compare ${it} with ` },
-        { label: "Write an X thread", prompt: `Write an X thread explaining what you found about ${it}.` },
+        { label: "Explain the risks", prompt: `What are the specific risks of ${it}, ranked?` },
+        { label: "Compare another token", prompt: `Compare ${it} with ` },
+        { label: "Generate X thread", prompt: `Write an X thread explaining what you found about ${it}.` },
+        { label: "Export PDF", prompt: `Export that analysis of ${it} as a PDF.` },
+        { label: "Export DOCX", prompt: `Export that analysis of ${it} as a DOCX report.` },
       ];
     case "transaction":
       return [
@@ -393,7 +395,8 @@ export function actionsFor(intent: Intent, subject?: string): SuggestedAction[] 
         { label: "What is unverifiable?", prompt: `What claims about ${it} could not be verified?` },
         { label: "Research competitors", prompt: `Who competes with ${it}, and how do they differ?` },
         { label: "Find the token", prompt: `Does ${it} have a token on Robinhood Chain?` },
-        { label: "Write an X thread", prompt: `Write an X thread about ${it} based on what you found.` },
+        { label: "Generate X thread", prompt: `Write an X thread about ${it} based on what you found.` },
+        { label: "Export PDF", prompt: `Export that research on ${it} as a PDF.` },
       ];
     case "social":
       return [

@@ -57,14 +57,33 @@ export type ModelBadge =
 
 export type ModelProvider = "anthropic" | "openai" | "google" | "deepseek";
 
+/**
+ * What a model can do, as the picker states it.
+ *
+ * Declared per model rather than inherited from its provider: the provider
+ * says what the *endpoint* supports, and a model behind that endpoint may
+ * support less. Reading vision support off the host would promise something
+ * the model cannot do.
+ */
+export type ModelSkills = {
+  streaming: boolean;
+  vision: boolean;
+  files: boolean;
+  tools: boolean;
+  reasoning: boolean;
+};
+
 /** A model as the user sees it, and every way of reaching it. */
 export type CatalogueModel = {
   id: string;
   label: string;
   provider: ModelProvider;
   description: string;
+  /** The one-line "best for", shown under the name. */
+  bestFor: string;
   contextTokens: number;
   badges: ModelBadge[];
+  skills: ModelSkills;
   /**
    * Ordered. The first route whose provider is healthy serves the request; if
    * it fails mid-flight the next one is tried before the user sees anything.

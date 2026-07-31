@@ -47,8 +47,10 @@ export async function resolveCatalogue(): Promise<Catalogue> {
       label: model.label,
       provider: model.provider,
       description: model.description,
+      bestFor: model.bestFor,
       contextTokens: model.contextTokens,
       badges: model.badges,
+      skills: model.skills,
     }));
 
   const value: Catalogue = {

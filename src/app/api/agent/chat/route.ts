@@ -31,7 +31,13 @@ import {
   type AnalysisCard,
 } from "@/lib/ai/report";
 import { SYSTEM_PROMPT, briefing } from "@/lib/ai/system-prompt";
-import { TOOL_LABELS, TOOL_SCHEMAS, runTool, type SourceRef } from "@/lib/ai/tools";
+import {
+  TOOL_LABELS,
+  TOOL_SCHEMAS,
+  badgesFor,
+  runTool,
+  type SourceRef,
+} from "@/lib/ai/tools";
 
 export const runtime = "nodejs";
 /** Never cached, and never statically evaluated at build time. */
@@ -205,8 +211,20 @@ export async function POST(request: Request) {
         event({ type: "stage", id: "intent", label: detection.label, status: "ok" }),
       );
 
+      // The model is resolved before any request goes out, so this row is
+      // true the moment it appears rather than after a round trip.
+      controller.enqueue(
+        event({
+          type: "stage",
+          id: "model",
+          label: `Selecting ${selected.label}`,
+          status: "ok",
+        }),
+      );
+
       const sources: SourceRef[] = [];
       const cards: AnalysisCard[] = [];
+      const badges = new Set<string>();
       const outcomes = { ok: 0, failed: 0 };
 
       try {
@@ -247,6 +265,10 @@ export async function POST(request: Request) {
               args = {};
             }
 
+            for (const badge of badgesFor(call.function.name, args)) {
+              badges.add(badge);
+            }
+
             const toolResult = await runTool(call.function.name, args);
 
             if (toolResult.available) outcomes.ok += 1;
@@ -275,6 +297,22 @@ export async function POST(request: Request) {
               content: JSON.stringify(toolResult),
             });
           }
+        }
+
+        // Announced once the tools are done and before the closing summary
+        // rows, so the timeline reads as a sequence rather than a list that
+        // filled in from both ends.
+        controller.enqueue(
+          event({
+            type: "stage",
+            id: "compose",
+            label: "Building the response",
+            status: "ok",
+          }),
+        );
+
+        if (badges.size > 0) {
+          controller.enqueue(event({ type: "badges", badges: [...badges] }));
         }
 
         if (cards.length > 0) {

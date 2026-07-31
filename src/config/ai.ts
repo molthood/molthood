@@ -1,10 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Braces,
-  Code2,
+  Coins,
   FileText,
-  GitCompare,
-  Receipt,
+  Github,
+  Globe,
+  PieChart,
   Search,
   ShieldAlert,
   Wallet,
@@ -33,45 +34,53 @@ export type ExamplePrompt = {
 export const EXAMPLE_PROMPTS: ExamplePrompt[] = [
   {
     icon: Wallet,
-    label: "Analyse a wallet",
-    prompt:
-      "Analyse this wallet and tell me what it actually holds and what you could not check: ",
+    label: "Analyse wallet",
+    prompt: "Analyse this wallet — what it holds, and what you could not check: ",
+  },
+  {
+    icon: Coins,
+    label: "Analyse token",
+    prompt: "Analyse this token: supply, liquidity, holders and contract powers: ",
   },
   {
     icon: Search,
-    label: "Research a project",
+    label: "Research project",
     prompt: "Research this project and tell me what is verifiable about it: ",
   },
   {
     icon: Braces,
-    label: "Explain a smart contract",
-    prompt: "Explain what this smart contract does, in plain language: ",
-  },
-  {
-    icon: GitCompare,
-    label: "Compare two tokens",
-    prompt: "Compare these two tokens and name the differences that matter: ",
-  },
-  {
-    icon: ShieldAlert,
-    label: "Is this token risky?",
-    prompt:
-      "Is this token risky? Tell me what you checked, what you could not check, and why: ",
+    label: "Explain smart contract",
+    prompt: "Explain what this contract does and what powers it gives its owner: ",
   },
   {
     icon: FileText,
-    label: "Create an X thread",
+    label: "Generate X thread",
     prompt: "Write an X thread explaining ",
   },
   {
-    icon: Receipt,
-    label: "Explain a transaction",
-    prompt: "Explain what happened in this transaction: ",
+    icon: PieChart,
+    label: "Portfolio review",
+    prompt: "Review this portfolio and tell me where the concentrated risk is: ",
   },
   {
-    icon: Code2,
-    label: "Summarise documentation",
-    prompt: "Summarise this documentation and tell me what it leaves unanswered: ",
+    icon: Coins,
+    label: "Explain tokenomics",
+    prompt: "Explain the tokenomics of ",
+  },
+  {
+    icon: ShieldAlert,
+    label: "Security scan",
+    prompt: "Run a security scan on this contract and rank what you find: ",
+  },
+  {
+    icon: Globe,
+    label: "Website research",
+    prompt: "Research this website — what it publishes and what it omits: ",
+  },
+  {
+    icon: Github,
+    label: "GitHub analysis",
+    prompt: "Analyse this repository — is it actually maintained? ",
   },
 ];
 

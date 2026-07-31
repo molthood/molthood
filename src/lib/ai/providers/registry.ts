@@ -11,7 +11,12 @@
  * money.
  */
 
-import type { CatalogueModel, Provider, ProviderId } from "@/lib/ai/providers/types";
+import type {
+  CatalogueModel,
+  ModelSkills,
+  Provider,
+  ProviderId,
+} from "@/lib/ai/providers/types";
 
 export const PROVIDERS: Record<ProviderId, Provider> = {
   gorouter: {
@@ -72,26 +77,54 @@ export const PROVIDERS: Record<ProviderId, Provider> = {
  * makes Gemini and DeepSeek answerable at all while their direct accounts are
  * out of quota and out of balance respectively.
  */
+/** Every model here streams, calls tools, and reasons. Only vision varies. */
+const TEXT_SKILLS: ModelSkills = {
+  streaming: true,
+  vision: false,
+  files: true,
+  tools: true,
+  reasoning: true,
+};
+
+const MULTIMODAL_SKILLS: ModelSkills = { ...TEXT_SKILLS, vision: true };
+
 export const CATALOGUE: CatalogueModel[] = [
   {
     id: "claude-opus-5-thinking",
     label: "Claude Opus 5 Thinking",
     provider: "anthropic",
-    description: "Best for deep reasoning and crypto research.",
+    description: "Reasons at length before answering.",
+    bestFor: "Best for deep crypto research.",
     contextTokens: 1_000_000,
     badges: ["Reasoning", "Premium"],
+    skills: TEXT_SKILLS,
     routes: [
       { provider: "gorouter", model: "claude-opus-5-thinking" },
       { provider: "virtuals", model: "anthropic-claude-opus-5" },
     ],
   },
   {
+    id: "claude-sonnet-5",
+    label: "Claude Sonnet 5",
+    provider: "anthropic",
+    description: "Answers directly, at a lower cost per turn.",
+    bestFor: "Fast coding and daily conversations.",
+    contextTokens: 1_000_000,
+    badges: ["Fast", "Coding"],
+    skills: TEXT_SKILLS,
+    // Not served by the primary provider's catalogue, so this one is
+    // Virtuals-only until it appears there.
+    routes: [{ provider: "virtuals", model: "anthropic-claude-sonnet-5" }],
+  },
+  {
     id: "gemini-pro",
     label: "Gemini 2.5 Pro",
     provider: "google",
-    description: "Best for long documents and multimodal reasoning.",
+    description: "Reads very long inputs, including images.",
+    bestFor: "Best for long documents and multimodal reasoning.",
     contextTokens: 1_000_000,
     badges: ["Research", "Long context"],
+    skills: MULTIMODAL_SKILLS,
     routes: [
       // The preferred route, as asked. It is currently out of quota on this
       // key, which is exactly the case the rest of the list exists for.
@@ -104,9 +137,11 @@ export const CATALOGUE: CatalogueModel[] = [
     id: "deepseek-reasoner",
     label: "DeepSeek Reasoner",
     provider: "deepseek",
-    description: "Best value for coding and fast responses.",
+    description: "Strong reasoning at a fraction of the cost.",
+    bestFor: "Excellent coding and reasoning performance.",
     contextTokens: 1_000_000,
     badges: ["Coding", "Fast"],
+    skills: TEXT_SKILLS,
     routes: [
       { provider: "deepseek", model: "deepseek-v4-pro" },
       { provider: "deepseek", model: "deepseek-v4-flash" },
@@ -117,9 +152,11 @@ export const CATALOGUE: CatalogueModel[] = [
     id: "gpt-5",
     label: "GPT-5",
     provider: "openai",
-    description: "Best for general AI, writing and coding.",
+    description: "Broad capability across writing, code and analysis.",
+    bestFor: "General intelligence and coding.",
     contextTokens: 1_000_000,
     badges: ["Coding", "Premium"],
+    skills: MULTIMODAL_SKILLS,
     routes: [{ provider: "virtuals", model: "openai-gpt-55" }],
   },
 ];

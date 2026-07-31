@@ -2,25 +2,23 @@
 
 import * as React from "react";
 import {
-  Check,
-  Download,
   FileCode2,
   FileImage,
   FileSpreadsheet,
   FileText,
-  Loader2,
+  Maximize2,
   Presentation,
   Table2,
 } from "lucide-react";
 
+import { ArtifactWorkspace } from "@/components/ai/artifact-workspace";
+
 import {
   FORMAT_LABEL,
   approximateSize,
-  toBlob,
   type Artifact,
   type ArtifactFormat,
 } from "@/lib/ai/artifacts";
-import { cn } from "@/lib/utils";
 
 const ICONS: Record<ArtifactFormat, typeof FileText> = {
   md: FileText,
@@ -44,71 +42,44 @@ const ICONS: Record<ArtifactFormat, typeof FileText> = {
  * scroll past to reach the next message, and it is the same mistake as
  * printing binary.
  *
- * Conversion happens on click. The libraries that write Office formats are
- * large enough that importing them to *display a card* would slow every page
- * load for a feature most conversations never touch.
+ * Clicking opens a workspace rather than downloading. A file you have not read
+ * is one you cannot judge, and a document that lands unseen in a downloads
+ * folder is less useful than one you can skim in place.
  */
 function ArtifactCard({ artifact }: { artifact: Artifact }) {
-  const [state, setState] = React.useState<"idle" | "working" | "done" | "error">("idle");
+  const [open, setOpen] = React.useState(false);
   const Icon = ICONS[artifact.format];
 
-  const download = async () => {
-    setState("working");
-    try {
-      const blob = await toBlob(artifact);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = artifact.filename;
-      document.body.append(anchor);
-      anchor.click();
-      anchor.remove();
-      // Revoking immediately can cancel the download in some browsers.
-      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      setState("done");
-      setTimeout(() => setState("idle"), 2500);
-    } catch {
-      setState("error");
-    }
-  };
-
   return (
-    <div className="border-border bg-surface-raised my-3 flex items-center gap-3 rounded-xl border p-3.5">
-      <span className="border-border bg-background inline-flex size-10 shrink-0 items-center justify-center rounded-lg border">
-        <Icon className="text-primary size-4.5" aria-hidden="true" />
-      </span>
-
-      <div className="min-w-0 flex-1">
-        <p className="text-foreground truncate text-[13px] font-bold">{artifact.filename}</p>
-        <p className="text-muted mt-0.5 text-[11px] font-medium">
-          {FORMAT_LABEL[artifact.format]} · {approximateSize(artifact.content)}
-          {state === "error" ? (
-            <span className="text-danger"> · could not be generated</span>
-          ) : null}
-        </p>
-      </div>
-
+    <>
       <button
         type="button"
-        onClick={download}
-        disabled={state === "working"}
-        className={cn(
-          "bg-primary text-background hover:bg-primary-hover inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg px-3.5",
-          "text-[13px] font-bold transition-colors disabled:opacity-60",
-        )}
+        onClick={() => setOpen(true)}
+        className="border-border bg-surface-raised hover:border-border-strong my-3 flex w-full items-center gap-3 rounded-xl border p-3.5 text-left transition-colors"
       >
-        {state === "working" ? (
-          <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-        ) : state === "done" ? (
-          <Check className="size-3.5" aria-hidden="true" />
-        ) : (
-          <Download className="size-3.5" aria-hidden="true" />
-        )}
-        <span className="hidden sm:inline">
-          {state === "working" ? "Preparing" : state === "done" ? "Saved" : "Download"}
+        <span className="border-border bg-background inline-flex size-10 shrink-0 items-center justify-center rounded-lg border">
+          <Icon className="text-primary size-4.5" aria-hidden="true" />
+        </span>
+
+        <span className="min-w-0 flex-1">
+          <span className="text-foreground block truncate text-[13px] font-bold">
+            {artifact.filename}
+          </span>
+          <span className="text-muted mt-0.5 block text-[11px] font-medium">
+            {FORMAT_LABEL[artifact.format]} · {approximateSize(artifact.content)}
+          </span>
+        </span>
+
+        <span className="border-border text-foreground inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13px] font-bold">
+          <Maximize2 className="size-3.5" aria-hidden="true" />
+          <span className="hidden sm:inline">Open</span>
         </span>
       </button>
-    </div>
+
+      {open ? (
+        <ArtifactWorkspace artifact={artifact} onClose={() => setOpen(false)} />
+      ) : null}
+    </>
   );
 }
 

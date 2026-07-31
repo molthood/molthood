@@ -10,6 +10,7 @@ import { ModelPicker } from "@/components/ai/model-picker";
 import { LogoMark } from "@/components/brand/logo";
 import { AI_CAPABILITIES, AI_NAME, AI_TAGLINE, EXAMPLE_PROMPTS } from "@/config/ai";
 import { useMoltChat } from "@/hooks/use-molt-chat";
+import { cn } from "@/lib/utils";
 
 
 /** Shown before the first question. */
@@ -24,7 +25,7 @@ function EmptyState({ onPick }: { onPick: (prompt: string) => void }) {
         {AI_TAGLINE}
       </p>
 
-      <div className="mt-7 grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="mt-7 grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {EXAMPLE_PROMPTS.map((example) => {
           const Icon = example.icon;
           return (
@@ -193,7 +194,16 @@ function MoltAi() {
           )}
         </div>
 
-        <div ref={composerRef} className="border-border shrink-0 border-t px-4 py-3 sm:py-4">
+        <div
+          ref={composerRef}
+          className={cn(
+            "border-border shrink-0 border-t px-4 py-3 sm:py-4",
+            // `env(safe-area-inset-bottom)` keeps the send button clear of the
+            // home indicator on a phone, where the composer sits at the very
+            // bottom of the viewport.
+            "pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:pb-4",
+          )}
+        >
           <div className="mx-auto w-full max-w-3xl">
             <Composer
               onSend={chat.send}

@@ -202,6 +202,30 @@ function Sources({ sources }: { sources: SourceRef[] }) {
   );
 }
 
+/**
+ * What the tools did, above the answer.
+ *
+ * Named for the job rather than the function: one `analyse_subject` call
+ * against a token is a token analysis, a security scan and a market read, and
+ * saying so is more useful than naming the call once.
+ */
+function ToolBadges({ badges }: { badges: string[] }) {
+  if (badges.length === 0) return null;
+
+  return (
+    <ul className="mb-3 flex flex-wrap gap-1.5">
+      {badges.map((badge) => (
+        <li
+          key={badge}
+          className="border-primary/30 text-primary rounded-full border px-2 py-0.5 text-[10px] font-bold"
+        >
+          {badge}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /** What to ask next. Deterministic, so they appear the instant an answer ends. */
 function Actions({
   actions,
@@ -235,4 +259,4 @@ function Actions({
   );
 }
 
-export { Actions, Cards, ConfidenceBadge, Sources, Timeline };
+export { Actions, Cards, ConfidenceBadge, Sources, Timeline, ToolBadges };

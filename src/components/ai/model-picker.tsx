@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Eye, Paperclip, Sparkles, Wrench, Zap } from "lucide-react";
+
+import { PROVIDER_LABELS, ProviderLogo } from "@/components/ai/provider-logo";
 
 import {
   Dropdown,
@@ -10,60 +12,8 @@ import {
   DropdownLabel,
   DropdownTrigger,
 } from "@/components/ui/dropdown";
-import {
-  formatContext,
-  type ModelBadge,
-  type ModelOption,
-  type ModelProvider,
-} from "@/lib/ai/models";
+import { formatContext, type ModelBadge, type ModelOption } from "@/lib/ai/models";
 import { cn } from "@/lib/utils";
-
-/**
- * Provider marks.
- *
- * Drawn as SVG rather than fetched: a strict content policy blocks remote
- * images, an icon that fails to load leaves a hole in the row, and four small
- * glyphs are far cheaper inline than four network requests. Each is a simple
- * geometric reading of the provider's mark, in `currentColor` so it inherits
- * the row's state instead of carrying its own palette.
- */
-function ProviderMark({ provider }: { provider: ModelProvider }) {
-  const common = {
-    viewBox: "0 0 24 24",
-    className: "size-4 shrink-0",
-    "aria-hidden": true as const,
-  };
-
-  switch (provider) {
-    case "anthropic":
-      return (
-        <svg {...common} fill="currentColor">
-          <path d="M7.4 4h3.05l5.4 16h-3.2l-1.1-3.4H5.9L4.8 20H1.6L7.4 4Zm.53 4.2-1.5 4.8h3.06l-1.5-4.8Z" />
-          <path d="M16.6 4H20l-4.2 12.6-1.6-4.9L16.6 4Z" opacity="0.55" />
-        </svg>
-      );
-    case "openai":
-      return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.7">
-          <path d="M12 3.2 18.4 7v7.9L12 18.8 5.6 14.9V7L12 3.2Z" strokeLinejoin="round" />
-          <path d="M12 3.2v7.7l6.4 4M12 10.9l-6.4 4" strokeLinejoin="round" />
-        </svg>
-      );
-    case "google":
-      return (
-        <svg {...common} fill="currentColor">
-          <path d="M12 2c.4 4.6 3.4 7.6 8 8-4.6.4-7.6 3.4-8 8-.4-4.6-3.4-7.6-8-8 4.6-.4 7.6-3.4 8-8Z" />
-        </svg>
-      );
-    case "deepseek":
-      return (
-        <svg {...common} fill="none" stroke="currentColor" strokeWidth="1.7">
-          <circle cx="12" cy="12" r="8.2" />
-          <path d="M12 3.8c3 2.4 3 13.9 0 16.4M3.9 12h16.2" strokeLinecap="round" />
-        </svg>
-      );
-  }
-}
 
 /**
  * Badge colours.
@@ -79,6 +29,33 @@ const BADGE_STYLES: Record<ModelBadge, string> = {
   Premium: "border-border-strong text-muted",
   "Long context": "border-border-strong text-muted",
 };
+
+/**
+ * What the model supports, as icons rather than a sentence.
+ *
+ * Only what is true is shown. An icon rendered in a "disabled" state still
+ * reads as a feature at a glance, and the row is scanned rather than studied.
+ */
+function Skills({ skills }: { skills: ModelOption["skills"] }) {
+  const entries = [
+    { on: skills.streaming, icon: Zap, label: "Streaming" },
+    { on: skills.tools, icon: Wrench, label: "Tool calling" },
+    { on: skills.reasoning, icon: Sparkles, label: "Reasoning" },
+    { on: skills.vision, icon: Eye, label: "Vision" },
+    { on: skills.files, icon: Paperclip, label: "Files" },
+  ].filter((entry) => entry.on);
+
+  return (
+    <span className="flex items-center gap-1.5">
+      {entries.map(({ icon: Icon, label }) => (
+        <span key={label} title={label} className="text-muted inline-flex">
+          <Icon className="size-3" aria-hidden="true" />
+          <span className="sr-only">{label}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
 
 function Badge({ badge }: { badge: ModelBadge }) {
   return (
@@ -124,7 +101,7 @@ function ModelPicker({
           )}
           aria-label="Choose model"
         >
-          {selected ? <ProviderMark provider={selected.provider} /> : null}
+          {selected ? <ProviderLogo provider={selected.provider} size={16} /> : null}
           <span className="truncate">{selected?.label ?? value}</span>
           <ChevronDown className="size-3 shrink-0 opacity-70" aria-hidden="true" />
         </button>
@@ -154,7 +131,7 @@ function ModelPicker({
 
               <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-1.5">
-                  <ProviderMark provider={model.provider} />
+                  <ProviderLogo provider={model.provider} size={16} />
                   <span className="text-foreground text-[13px] font-bold">
                     {model.label}
                   </span>
@@ -163,12 +140,21 @@ function ModelPicker({
                   ))}
                 </span>
 
+                <span className="text-muted mt-0.5 block text-[11px] font-bold">
+                  {PROVIDER_LABELS[model.provider]}
+                </span>
+                <span className="text-foreground/80 mt-1 block text-[11px] leading-snug font-medium">
+                  {model.bestFor}
+                </span>
                 <span className="text-muted mt-0.5 block text-[11px] leading-snug font-medium">
                   {model.description}
                 </span>
 
-                <span className="text-muted mt-1 block font-mono text-[10px] font-bold tracking-wide">
-                  {formatContext(model.contextTokens)}
+                <span className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  <span className="text-muted font-mono text-[10px] font-bold tracking-wide">
+                    {formatContext(model.contextTokens)}
+                  </span>
+                  <Skills skills={model.skills} />
                 </span>
               </span>
             </DropdownItem>

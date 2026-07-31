@@ -15,6 +15,7 @@ import {
   ConfidenceBadge,
   Sources,
   Timeline,
+  ToolBadges,
 } from "@/components/ai/analysis";
 import { Markdown } from "@/components/ai/markdown";
 import { LogoMark } from "@/components/brand/logo";
@@ -67,6 +68,7 @@ function ChatMessage({
 
       <div className="min-w-0 flex-1">
         <Timeline steps={message.steps ?? []} />
+        <ToolBadges badges={message.badges ?? []} />
         <Cards cards={message.cards ?? []} />
 
         {empty && !message.error ? (
