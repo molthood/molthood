@@ -14,8 +14,16 @@
 
 import { resolveModel } from "@/lib/ai/catalogue";
 import { AI_API_KEY, AI_BASE_URL, isConfigured } from "@/lib/ai/config";
-import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
-import { TOOL_LABELS, TOOL_SCHEMAS, runTool } from "@/lib/ai/tools";
+import { detectIntent, effectiveIntent, lastSubject } from "@/lib/ai/intent";
+import {
+  actionsFor,
+  cardsFor,
+  confidenceFor,
+  mergeSources,
+  type AnalysisCard,
+} from "@/lib/ai/report";
+import { SYSTEM_PROMPT, briefing } from "@/lib/ai/system-prompt";
+import { TOOL_LABELS, TOOL_SCHEMAS, runTool, type SourceRef } from "@/lib/ai/tools";
 
 export const runtime = "nodejs";
 /** Never cached, and never statically evaluated at build time. */
@@ -275,8 +283,24 @@ export async function POST(request: Request) {
 
   const model = await resolveModel(body.model);
 
+  // Routing happens here, not in the model. A 42-character hex string is an
+  // address whoever is asking and however they phrase it, and deciding that
+  // deterministically means the same question always takes the same path.
+  const question = incoming[incoming.length - 1]?.content ?? "";
+  const detection = detectIntent(question);
+  // Carried from earlier turns so "compare it with BTC" still has a subject.
+  const carried = detection.subject ? null : lastSubject(incoming);
+  // Actions and confidence follow the conversation's subject, not this
+  // sentence's grammar. "So is it safe to hold overnight?" reads as research
+  // on its own words while still being about the address two turns up.
+  const intent = effectiveIntent(detection, carried, question);
+
   const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
+    {
+      role: "system",
+      content: briefing(detection, carried),
+    },
     ...incoming.map((message) => ({ role: message.role, content: message.content })),
   ];
 
@@ -286,6 +310,17 @@ export async function POST(request: Request) {
       // deployment does not offer and been given the default instead. A UI
       // showing one model while another answered is a lie the user cannot see.
       controller.enqueue(event({ type: "model", id: model }));
+
+      // The first timeline row. It resolves immediately — the classification
+      // is a regex, not a request — which is the point: something true appears
+      // before the slow part starts.
+      controller.enqueue(
+        event({ type: "stage", id: "intent", label: detection.label, status: "ok" }),
+      );
+
+      const sources: SourceRef[] = [];
+      const cards: AnalysisCard[] = [];
+      const outcomes = { ok: 0, failed: 0 };
 
       try {
         for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
@@ -333,6 +368,15 @@ export async function POST(request: Request) {
 
             const toolResult = await runTool(call.function.name, args);
 
+            if (toolResult.available) outcomes.ok += 1;
+            else outcomes.failed += 1;
+
+            sources.push(...mergeSources([toolResult.sources]));
+            // Cards come from the tool payload, never from the prose. A card
+            // built by parsing the answer can be wrong in a way that looks
+            // identical to one that was measured.
+            cards.push(...cardsFor(call.function.name, toolResult));
+
             controller.enqueue(
               event({
                 type: "tool",
@@ -340,6 +384,7 @@ export async function POST(request: Request) {
                 label,
                 status: toolResult.available ? "ok" : "unavailable",
                 reason: toolResult.reason,
+                detail: toolResult.detail,
               }),
             );
 
@@ -350,6 +395,27 @@ export async function POST(request: Request) {
             });
           }
         }
+
+        if (cards.length > 0) {
+          controller.enqueue(event({ type: "cards", cards }));
+        }
+
+        const merged = mergeSources([sources]);
+        if (merged.length > 0) {
+          controller.enqueue(event({ type: "sources", sources: merged }));
+        }
+
+        const confidence = confidenceFor(intent, outcomes);
+        if (confidence) {
+          controller.enqueue(event({ type: "confidence", ...confidence }));
+        }
+
+        controller.enqueue(
+          event({
+            type: "actions",
+            actions: actionsFor(intent, detection.subject ?? carried?.subject),
+          }),
+        );
 
         controller.enqueue(event({ type: "done" }));
       } catch (error) {

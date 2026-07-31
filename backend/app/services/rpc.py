@@ -121,5 +121,15 @@ class RPCClient(BaseServiceClient):
         result = await self._call("eth_getTransactionByHash", [tx_hash])
         return result if isinstance(result, dict) else None
 
+    async def get_transaction_receipt(self, tx_hash: str) -> dict[str, Any] | None:
+        """The outcome of a transaction: status, gas used, logs.
+
+        Separate from the transaction itself, because the transaction says what
+        was *asked for* and the receipt says what happened. A transfer that
+        reverted looks identical to one that succeeded until you read this.
+        """
+        result = await self._call("eth_getTransactionReceipt", [tx_hash])
+        return result if isinstance(result, dict) else None
+
     async def call(self, payload: dict[str, Any], block: str = "latest") -> Any:
         return await self._call("eth_call", [payload, block])

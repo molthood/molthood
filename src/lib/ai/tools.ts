@@ -18,8 +18,18 @@ import {
   MOLTHOOD_API_URL,
 } from "@/lib/ai/config";
 
+/**
+ * Where a finding came from, named by role.
+ *
+ * Roles rather than suppliers, and the URL alongside — the link is what makes
+ * a claim checkable, and it says who served it without the interface having to.
+ */
+export type SourceRef = { role: string; url?: string };
+
 export type ToolResult = {
   available: boolean;
+  /** Roles consulted, for the sources panel. */
+  sources?: SourceRef[];
   /** Present when `available` is false. Never a free-form sentence. */
   reason?:
     | "missing_key"
@@ -65,6 +75,41 @@ export const TOOL_SCHEMAS = [
   {
     type: "function" as const,
     function: {
+      name: "explain_transaction",
+      description:
+        "Look up one Robinhood Chain transaction and its outcome: whether it succeeded or reverted, who sent it, what it called, value moved and gas used.",
+      parameters: {
+        type: "object",
+        properties: {
+          hash: { type: "string", description: "0x followed by 64 hex characters." },
+        },
+        required: ["hash"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "inspect_repository",
+      description:
+        "Read a public GitHub repository's live facts: stars, forks, open issues, licence, primary language, and when it was last pushed to. Use for any github.com link or owner/repo reference.",
+      parameters: {
+        type: "object",
+        properties: {
+          repo: {
+            type: "string",
+            description: "Either 'owner/name' or just 'owner' for the account itself.",
+          },
+        },
+        required: ["repo"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
       name: "analyse_subject",
       description:
         "Run a full Molthood analysis and return its findings: evidence, risk signals and sources. This is the authoritative source for a specific wallet, token, contract or website. Metered — call it once per subject, not repeatedly.",
@@ -96,19 +141,27 @@ export type ToolName = (typeof TOOL_SCHEMAS)[number]["function"]["name"];
 export const TOOL_LABELS: Record<string, string> = {
   chain_overview: "Reading chain statistics",
   find_token: "Searching tracked tokens",
-  analyse_subject: "Running a Molthood analysis",
+  explain_transaction: "Reading the transaction",
+  inspect_repository: "Reading the repository",
+  analyse_subject: "Running a full analysis",
 };
 
 const TIMEOUTS: Record<string, number> = {
   chain_overview: 15_000,
   find_token: 15_000,
+  explain_transaction: 20_000,
+  inspect_repository: 15_000,
   // A full analysis runs several agents against live sources.
   analyse_subject: 120_000,
 };
 
 async function request(
   path: string,
-  { timeout, authed }: { timeout: number; authed: boolean },
+  {
+    timeout,
+    authed,
+    sources = [],
+  }: { timeout: number; authed: boolean; sources?: SourceRef[] },
 ): Promise<ToolResult> {
   if (authed && !MOLTHOOD_API_KEY) {
     return {
@@ -154,7 +207,7 @@ async function request(
       };
     }
 
-    return { available: true, data: await response.json() };
+    return { available: true, data: await response.json(), sources };
   } catch (error) {
     const aborted = error instanceof Error && error.name === "AbortError";
     return {
@@ -212,7 +265,31 @@ export async function runTool(
   const timeout = TIMEOUTS[name] ?? 20_000;
 
   if (name === "chain_overview") {
-    return request("/chain/stats", { timeout, authed: false });
+    return request("/chain/stats", {
+      timeout,
+      authed: false,
+      sources: [{ role: "Chain explorer" }, { role: "Chain node" }],
+    });
+  }
+
+  if (name === "explain_transaction") {
+    const hash = typeof args.hash === "string" ? args.hash.trim() : "";
+    if (!/^0x[0-9a-fA-F]{64}$/.test(hash)) {
+      return {
+        available: false,
+        reason: "not_found",
+        detail: "A transaction hash is 0x followed by 64 hex characters.",
+      };
+    }
+    return request(`/chain/transaction/${hash}`, {
+      timeout,
+      authed: false,
+      sources: [{ role: "Chain node" }],
+    });
+  }
+
+  if (name === "inspect_repository") {
+    return inspectRepository(typeof args.repo === "string" ? args.repo : "", timeout);
   }
 
   if (name === "find_token") {
@@ -220,7 +297,11 @@ export async function runTool(
     const limit = Math.min(Math.max(Number(args.limit) || 8, 1), 25);
     const search = new URLSearchParams({ limit: String(limit) });
     if (query) search.set("q", query);
-    return request(`/chain/tokens?${search}`, { timeout, authed: false });
+    return request(`/chain/tokens?${search}`, {
+      timeout,
+      authed: false,
+      sources: [{ role: "Chain explorer" }],
+    });
   }
 
   if (name === "analyse_subject") {
@@ -257,7 +338,15 @@ export async function runTool(
       };
     }
 
-    const result = await request(path, { timeout, authed: true });
+    const result = await request(path, {
+      timeout,
+      authed: true,
+      sources: [
+        { role: "Chain explorer" },
+        { role: "Market data" },
+        { role: "Security screening" },
+      ],
+    });
     return result.available
       ? { ...result, data: summariseExecution(result.data) }
       : result;
@@ -268,4 +357,113 @@ export async function runTool(
     reason: "not_found",
     detail: `No tool named "${name}".`,
   };
+}
+
+
+/**
+ * A public GitHub repository, read directly.
+ *
+ * Direct rather than through the analysis engine because the engine has no
+ * repository capability, and routing a github.com link through the website
+ * audit would return facts about a web page — its certificates, its meta tags
+ * — when the question was about the code.
+ *
+ * Unauthenticated: public repository metadata needs no token, and adding one
+ * would make a feature that works everywhere depend on a credential.
+ */
+async function inspectRepository(reference: string, timeout: number): Promise<ToolResult> {
+  const path = reference
+    .trim()
+    .replace(/^https?:\/\/(www\.)?github\.com\//i, "")
+    .replace(/\.git$/, "")
+    .replace(/\/$/, "");
+
+  if (!/^[\w.-]+(\/[\w.-]+)?$/.test(path)) {
+    return {
+      available: false,
+      reason: "not_found",
+      detail: "That does not look like a GitHub owner or owner/repository.",
+    };
+  }
+
+  const isRepo = path.includes("/");
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeout);
+  const sources: SourceRef[] = [
+    { role: "Source repository", url: `https://github.com/${path}` },
+  ];
+
+  try {
+    const response = await fetch(
+      `https://api.github.com/${isRepo ? "repos" : "users"}/${path}`,
+      {
+        headers: { Accept: "application/vnd.github+json" },
+        signal: controller.signal,
+        cache: "no-store",
+      },
+    );
+
+    if (response.status === 404) {
+      // A real answer: the repository is private, renamed, or was never
+      // there. Worth saying, and worth distinguishing from a fetch that broke.
+      return {
+        available: false,
+        reason: "not_found",
+        detail: `No public repository or account at ${path}. It may be private or renamed.`,
+      };
+    }
+    if (response.status === 403) {
+      return {
+        available: false,
+        reason: "rate_limited",
+        detail: "The repository host is rate limiting unauthenticated reads right now.",
+      };
+    }
+    if (!response.ok) {
+      return { available: false, reason: "http_error", detail: `Answered ${response.status}.` };
+    }
+
+    const body = (await response.json()) as Record<string, unknown>;
+
+    const data = isRepo
+      ? {
+          kind: "repository",
+          full_name: body.full_name,
+          description: body.description,
+          stars: body.stargazers_count,
+          forks: body.forks_count,
+          open_issues: body.open_issues_count,
+          language: body.language,
+          license: (body.license as { spdx_id?: string } | null)?.spdx_id ?? null,
+          // The single most informative field here. A repository last pushed
+          // to two years ago is a different claim from its star count.
+          pushed_at: body.pushed_at,
+          created_at: body.created_at,
+          archived: body.archived,
+          is_fork: body.fork,
+          homepage: body.homepage,
+          topics: body.topics,
+        }
+      : {
+          kind: "account",
+          login: body.login,
+          name: body.name,
+          bio: body.bio,
+          public_repos: body.public_repos,
+          followers: body.followers,
+          created_at: body.created_at,
+          blog: body.blog,
+        };
+
+    return { available: true, data, sources };
+  } catch (error) {
+    const aborted = error instanceof Error && error.name === "AbortError";
+    return {
+      available: false,
+      reason: aborted ? "timeout" : "unreachable",
+      detail: "The repository host could not be reached.",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }

@@ -7,12 +7,16 @@ neither talks to an upstream host directly from the route.
 
 from __future__ import annotations
 
+import asyncio
+import re
 from typing import Any
 
 from fastapi import APIRouter, Query
 
 from app.api.deps import ExecutionStoreDep, ServiceRegistryDep, SettingsDep
+from app.core.exceptions import ValidationError
 from app.services.models import to_float, to_int
+from app.services.rpc import hex_to_int
 
 router = APIRouter(tags=["chain"])
 
@@ -144,3 +148,61 @@ def _matching(items: list[dict[str, Any]], query: str) -> list[dict[str, Any]]:
 
     ranked.sort(key=lambda pair: pair[0])
     return [item for _, item in ranked]
+
+
+_TX_HASH = re.compile(r"^0x[0-9a-fA-F]{64}$")
+
+
+@router.get(
+    "/transaction/{tx_hash}",
+    summary="One transaction, with its outcome",
+    description=(
+        "The transaction and its receipt together. The transaction says what "
+        "was asked for; the receipt says what happened — a call that reverted "
+        "is indistinguishable from one that succeeded without it."
+    ),
+)
+async def chain_transaction(
+    services: ServiceRegistryDep, tx_hash: str
+) -> dict[str, Any]:
+    if not _TX_HASH.match(tx_hash):
+        raise ValidationError(
+            "A transaction hash is 0x followed by 64 hex characters.",
+            suggested_action="Check the hash and try again.",
+        )
+
+    transaction, receipt = await asyncio.gather(
+        services.rpc.get_transaction(tx_hash),
+        services.rpc.get_transaction_receipt(tx_hash),
+    )
+
+    if transaction is None:
+        # Not found is a real answer — the hash may be from another chain, or
+        # the transaction may not be mined yet. Both are worth distinguishing
+        # from a node that failed to respond.
+        return {"found": False, "hash": tx_hash}
+
+    status = None
+    if receipt is not None:
+        raw = receipt.get("status")
+        if isinstance(raw, str):
+            status = "success" if hex_to_int(raw) == 1 else "reverted"
+
+    return {
+        "found": True,
+        "hash": tx_hash,
+        "status": status,
+        "block_number": hex_to_int(transaction.get("blockNumber")),
+        "from": transaction.get("from"),
+        "to": transaction.get("to"),
+        # A `to` of null means the transaction deployed a contract rather than
+        # calling one, which changes what the whole thing was.
+        "creates_contract": transaction.get("to") is None,
+        "value_wei": hex_to_int(transaction.get("value")),
+        "gas_limit": hex_to_int(transaction.get("gas")),
+        "gas_used": hex_to_int(receipt.get("gasUsed")) if receipt else None,
+        "gas_price_wei": hex_to_int(transaction.get("gasPrice")),
+        "nonce": hex_to_int(transaction.get("nonce")),
+        "input_size_bytes": max(len(str(transaction.get("input") or "0x")) - 2, 0) // 2,
+        "log_count": len(receipt.get("logs") or []) if receipt else None,
+    }

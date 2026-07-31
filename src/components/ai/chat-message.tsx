@@ -6,48 +6,19 @@ import {
   Check,
   Copy,
   Loader2,
-  MinusCircle,
   RefreshCw,
 } from "lucide-react";
 
+import {
+  Actions,
+  Cards,
+  ConfidenceBadge,
+  Sources,
+  Timeline,
+} from "@/components/ai/analysis";
 import { Markdown } from "@/components/ai/markdown";
 import { LogoMark } from "@/components/brand/logo";
-import type { Message, ToolEvent } from "@/hooks/use-molt-chat";
-
-/** Why a tool could not run, in words rather than a code. */
-const REASONS: Record<string, string> = {
-  missing_key: "not configured on this deployment",
-  rate_limited: "the shared daily analysis allowance is spent",
-  unreachable: "the API could not be reached",
-  http_error: "the API returned an error",
-  not_found: "nothing found for that subject",
-  timeout: "took too long to finish",
-};
-
-function ToolRow({ tool }: { tool: ToolEvent }) {
-  const icon =
-    tool.status === "running" ? (
-      <Loader2 className="text-muted size-3.5 shrink-0 animate-spin" />
-    ) : tool.status === "ok" ? (
-      <Check className="text-primary size-3.5 shrink-0" />
-    ) : (
-      <MinusCircle className="text-muted size-3.5 shrink-0" />
-    );
-
-  return (
-    <li className="flex items-center gap-2 text-xs font-medium">
-      {icon}
-      <span className={tool.status === "unavailable" ? "text-muted" : "text-foreground"}>
-        {tool.label}
-      </span>
-      {/* An unavailable check is stated, never omitted. A tool that silently
-          vanished from this list would read as a check that passed. */}
-      {tool.status === "unavailable" ? (
-        <span className="text-muted">— could not run: {REASONS[tool.reason ?? ""] ?? "unavailable"}</span>
-      ) : null}
-    </li>
-  );
-}
+import type { Message } from "@/hooks/use-molt-chat";
 
 export type ChatMessageProps = {
   message: Message;
@@ -55,9 +26,17 @@ export type ChatMessageProps = {
   isLast: boolean;
   streaming: boolean;
   onRegenerate: () => void;
+  /** Sends a suggested follow-up straight away. */
+  onAction: (prompt: string) => void;
 };
 
-function ChatMessage({ message, isLast, streaming, onRegenerate }: ChatMessageProps) {
+function ChatMessage({
+  message,
+  isLast,
+  streaming,
+  onRegenerate,
+  onAction,
+}: ChatMessageProps) {
   const [copied, setCopied] = React.useState(false);
 
   const copy = async () => {
@@ -87,13 +66,8 @@ function ChatMessage({ message, isLast, streaming, onRegenerate }: ChatMessagePr
       <LogoMark size={26} className="mt-0.5 hidden sm:block" />
 
       <div className="min-w-0 flex-1">
-        {message.tools && message.tools.length > 0 ? (
-          <ul className="border-border bg-surface/60 mb-3 flex flex-col gap-1.5 rounded-xl border px-3 py-2.5">
-            {message.tools.map((tool, index) => (
-              <ToolRow key={`${tool.name}-${index}`} tool={tool} />
-            ))}
-          </ul>
-        ) : null}
+        <Timeline steps={message.steps ?? []} />
+        <Cards cards={message.cards ?? []} />
 
         {empty && !message.error ? (
           <div className="text-muted flex items-center gap-2 text-sm font-medium">
@@ -120,6 +94,12 @@ function ChatMessage({ message, isLast, streaming, onRegenerate }: ChatMessagePr
             </button>
           </div>
         ) : null}
+
+        {message.confidence && !streaming ? (
+          <ConfidenceBadge confidence={message.confidence} />
+        ) : null}
+
+        {!streaming ? <Sources sources={message.sources ?? []} /> : null}
 
         {!streaming && !empty && !message.error ? (
           <div className="mt-2 flex items-center gap-1">
@@ -148,6 +128,10 @@ function ChatMessage({ message, isLast, streaming, onRegenerate }: ChatMessagePr
               </button>
             ) : null}
           </div>
+        ) : null}
+
+        {!streaming && !message.error ? (
+          <Actions actions={message.actions ?? []} onPick={onAction} />
         ) : null}
       </div>
     </div>

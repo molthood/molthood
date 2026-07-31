@@ -3,6 +3,8 @@
 import * as React from "react";
 
 import type { ModelOption } from "@/lib/ai/models";
+import type { AnalysisCard, Confidence, SuggestedAction } from "@/lib/ai/report";
+import type { SourceRef } from "@/lib/ai/tools";
 
 /**
  * Conversation state for Molthood Agent: streaming, history, persistence.
@@ -17,8 +19,15 @@ const STORAGE_KEY = "molthood.ai.conversations.v1";
 const ACTIVE_KEY = "molthood.ai.active.v1";
 const MODEL_KEY = "molthood.ai.model.v1";
 
-export type ToolEvent = {
-  name: string;
+/**
+ * One row of the execution timeline.
+ *
+ * Both the deterministic first step and every tool call land here, so the
+ * reader sees one continuous list rather than a classification step in one
+ * place and tool activity in another.
+ */
+export type TimelineStep = {
+  id: string;
   label: string;
   status: "running" | "ok" | "unavailable";
   reason?: string;
@@ -28,8 +37,13 @@ export type Message = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  /** Tool activity for an assistant turn, in the order it happened. */
-  tools?: ToolEvent[];
+  /** Execution timeline for an assistant turn, in the order it happened. */
+  steps?: TimelineStep[];
+  /** Figures measured by the tools. Never parsed from the answer. */
+  cards?: AnalysisCard[];
+  sources?: SourceRef[];
+  confidence?: Confidence;
+  actions?: SuggestedAction[];
   /** Set when the turn ended badly. The bubble renders a retry instead. */
   error?: string;
   createdAt: number;
@@ -249,8 +263,12 @@ export function useMoltChat() {
               message?: string;
               name?: string;
               label?: string;
-              status?: ToolEvent["status"];
+              status?: TimelineStep["status"];
               reason?: string;
+              cards?: AnalysisCard[];
+              sources?: SourceRef[];
+              actions?: SuggestedAction[];
+              level?: Confidence["level"];
             };
             try {
               payload = JSON.parse(line);
@@ -271,25 +289,42 @@ export function useMoltChat() {
               if (payload.id !== modelRef.current) setModel(payload.id);
             } else if (payload.type === "thinking") {
               setThinking(true);
-            } else if (payload.type === "tool" && payload.name && payload.label) {
+            } else if (
+              (payload.type === "tool" || payload.type === "stage") &&
+              payload.label
+            ) {
+              const id = (payload.name ?? payload.id) as string;
               patchReply((message) => {
-                const tools = [...(message.tools ?? [])];
-                // The same tool reports twice — running, then its outcome —
-                // and the second report replaces the first rather than
-                // stacking a duplicate row under it.
-                const index = tools.findIndex(
-                  (tool) => tool.name === payload.name && tool.status === "running",
+                const steps = [...(message.steps ?? [])];
+                // A step reports twice — running, then its outcome — and the
+                // second replaces the first rather than stacking a duplicate.
+                const index = steps.findIndex(
+                  (step) => step.id === id && step.status === "running",
                 );
-                const next: ToolEvent = {
-                  name: payload.name as string,
+                const next: TimelineStep = {
+                  id,
                   label: payload.label as string,
                   status: payload.status ?? "running",
                   reason: payload.reason,
                 };
-                if (index >= 0) tools[index] = next;
-                else tools.push(next);
-                return { ...message, tools };
+                if (index >= 0) steps[index] = next;
+                else steps.push(next);
+                return { ...message, steps };
               });
+            } else if (payload.type === "cards" && payload.cards) {
+              patchReply((message) => ({ ...message, cards: payload.cards }));
+            } else if (payload.type === "sources" && payload.sources) {
+              patchReply((message) => ({ ...message, sources: payload.sources }));
+            } else if (payload.type === "confidence" && payload.level) {
+              patchReply((message) => ({
+                ...message,
+                confidence: {
+                  level: payload.level as Confidence["level"],
+                  reason: payload.reason ?? "",
+                },
+              }));
+            } else if (payload.type === "actions" && payload.actions) {
+              patchReply((message) => ({ ...message, actions: payload.actions }));
             } else if (payload.type === "error") {
               patchReply((message) => ({ ...message, error: payload.message }));
             }

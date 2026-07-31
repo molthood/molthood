@@ -181,6 +181,11 @@ function MoltAi() {
                   isLast={message.id === lastAssistant?.id}
                   streaming={chat.streaming}
                   onRegenerate={chat.regenerate}
+                  onAction={(prompt) =>
+                    // A finished action sends; one ending in a space is an
+                    // invitation to add something, so it fills the box instead.
+                    prompt.endsWith(" ") ? pick(prompt) : chat.send(prompt)
+                  }
                 />
               ))}
               <div ref={endRef} className="h-px" />
