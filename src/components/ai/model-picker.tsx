@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, ChevronDown, Lock } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 
 import {
   Dropdown,
@@ -136,34 +136,23 @@ function ModelPicker({
           const active = model.id === value;
 
           return (
+            // Only answerable models reach this list. A route that cannot
+            // serve is resolved away server-side, so there is nothing here to
+            // disable — and no entry that fails the moment it is chosen.
             <DropdownItem
               key={model.id}
-              disabled={!model.available}
-              onSelect={(event) => {
-                // A model this key cannot reach must not become the selection.
-                // Letting it through would trade a visible lock for a 403 that
-                // only appears once an answer is already expected.
-                if (!model.available) {
-                  event.preventDefault();
-                  return;
-                }
-                onChange(model.id);
-              }}
+              onSelect={() => onChange(model.id)}
               className="items-start gap-2.5 py-2.5"
             >
-              {model.available ? (
-                <Check
-                  className={cn(
-                    "text-primary mt-0.5 size-3.5 shrink-0",
-                    active ? "opacity-100" : "opacity-0",
-                  )}
-                  aria-hidden="true"
-                />
-              ) : (
-                <Lock className="text-muted mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-              )}
+              <Check
+                className={cn(
+                  "text-primary mt-0.5 size-3.5 shrink-0",
+                  active ? "opacity-100" : "opacity-0",
+                )}
+                aria-hidden="true"
+              />
 
-              <span className={cn("min-w-0 flex-1", !model.available && "opacity-60")}>
+              <span className="min-w-0 flex-1">
                 <span className="flex flex-wrap items-center gap-1.5">
                   <ProviderMark provider={model.provider} />
                   <span className="text-foreground text-[13px] font-bold">
@@ -180,7 +169,6 @@ function ModelPicker({
 
                 <span className="text-muted mt-1 block font-mono text-[10px] font-bold tracking-wide">
                   {formatContext(model.contextTokens)}
-                  {model.available ? null : ` · ${model.unavailableReason}`}
                 </span>
               </span>
             </DropdownItem>

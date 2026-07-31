@@ -1,19 +1,17 @@
 /** The model catalogue, for the picker. */
 
-import { AI_MODEL, isConfigured } from "@/lib/ai/config";
 import { resolveCatalogue } from "@/lib/ai/catalogue";
+import { anyProviderConfigured } from "@/lib/ai/config";
+import { DEFAULT_MODEL_ID } from "@/lib/ai/providers/registry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  if (!isConfigured()) {
-    // A page that renders a picker with one greyed-out entry is clearer than
-    // one that renders an empty box and looks broken.
+  if (!anyProviderConfigured()) {
     return Response.json({
       models: [],
-      defaultModel: AI_MODEL,
-      live: false,
+      defaultModel: DEFAULT_MODEL_ID,
       configured: false,
     });
   }

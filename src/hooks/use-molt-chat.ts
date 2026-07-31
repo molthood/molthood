@@ -130,16 +130,14 @@ export function useMoltChat() {
       }
     })();
 
-    fetch("/api/ai/models")
+    fetch("/api/agent/models")
       .then((response) => (response.ok ? response.json() : null))
       .then((body: { models?: ModelOption[]; defaultModel?: string } | null) => {
         if (cancelled || !body?.models) return;
         setModels(body.models);
-        // A remembered model that has since become unreachable falls back to
-        // the default rather than sending an id the provider will refuse.
-        const known = body.models.some(
-          (option) => option.id === stored && option.available,
-        );
+        // A remembered model that is no longer offered falls back to the
+        // default rather than sending an id nothing will serve.
+        const known = body.models.some((option) => option.id === stored);
         setModel(known ? stored : (body.defaultModel ?? body.models[0]?.id ?? ""));
       })
       .catch(() => {
@@ -222,7 +220,7 @@ export function useMoltChat() {
       };
 
       try {
-        const response = await fetch("/api/ai/chat", {
+        const response = await fetch("/api/agent/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           signal: controller.signal,

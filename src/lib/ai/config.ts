@@ -4,7 +4,7 @@
  * Read on the server only. `AI_API_KEY` deliberately has no `NEXT_PUBLIC_`
  * prefix: anything with that prefix is inlined into the JavaScript bundle and
  * served to every visitor, which for a billed inference key means handing out
- * the ability to spend. The browser talks to `/api/ai/chat`; only that route
+ * the ability to spend. The browser talks to `/api/agent/chat`; only that route
  * talks to the provider.
  */
 
@@ -31,7 +31,22 @@ export const MOLTHOOD_API_URL =
   process.env.NEXT_PUBLIC_API_URL ??
   "http://127.0.0.1:8000";
 
-/** Whether the assistant can answer at all. Surfaced by `/api/ai/chat`. */
+/** Whether the assistant can answer at all. Surfaced by the chat endpoint. */
 export function isConfigured(): boolean {
   return AI_API_KEY.length > 0;
+}
+
+/**
+ * Whether *any* provider is configured.
+ *
+ * The check that matters now that models route across four of them: GoRouter
+ * being unset is no longer the same thing as the assistant being off.
+ */
+export function anyProviderConfigured(): boolean {
+  return [
+    AI_API_KEY,
+    process.env.GOOGLE_AI_API_KEY,
+    process.env.DEEPSEEK_API_KEY,
+    process.env.VIRTUALS_API_KEY,
+  ].some((key) => (key ?? "").length > 0);
 }

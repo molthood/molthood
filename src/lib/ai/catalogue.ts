@@ -1,96 +1,59 @@
 /**
- * Which of the four models this deployment can actually reach.
+ * Which models this deployment can actually offer.
  *
- * The curated list says what Molthood Agent offers; the provider says what it
- * will serve. Both matter, and conflating them is how a picker ends up with an
- * entry that 403s the moment somebody chooses it.
- *
- * Cached in the module for a few minutes: the answer changes when a key gains
- * access, which is on the order of never, and the picker opens on every load.
+ * A model is offered when at least one of its routes has a provider that is
+ * answering. Nothing disabled is shown: a picker entry that cannot serve a
+ * request is worse than a shorter list, because the failure only appears once
+ * an answer is already expected.
  */
 
-import { AI_API_KEY, AI_BASE_URL, isConfigured } from "@/lib/ai/config";
-import {
-  CURATED_MODELS,
-  FALLBACK_MODEL_ID,
-  configuredModelIds,
-  type ModelOption,
-} from "@/lib/ai/models";
+import { usableRoutes } from "@/lib/ai/providers/health";
+import { CATALOGUE, DEFAULT_MODEL_ID, allowedModelIds } from "@/lib/ai/providers/registry";
+import type { CatalogueModel } from "@/lib/ai/providers/types";
 
-const CACHE_MS = 5 * 60 * 1000;
+const CACHE_MS = 60 * 1000;
+
+export type OfferedModel = Omit<CatalogueModel, "routes">;
 
 export type Catalogue = {
-  models: ModelOption[];
+  models: OfferedModel[];
   defaultModel: string;
-  /** False when the provider could not be asked and this is an assumption. */
-  live: boolean;
 };
 
 let cached: { at: number; value: Catalogue } | null = null;
 
-/** Ids the provider says it serves, or null when it could not be asked. */
-async function fetchProviderIds(): Promise<string[] | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 8000);
-
-  try {
-    const response = await fetch(`${AI_BASE_URL}/models`, {
-      headers: { Authorization: `Bearer ${AI_API_KEY}` },
-      signal: controller.signal,
-      cache: "no-store",
-    });
-    if (!response.ok) return null;
-
-    const body = (await response.json()) as { data?: { id?: string }[] };
-    const ids = (body.data ?? [])
-      .map((model) => model.id)
-      .filter((id): id is string => typeof id === "string" && id.length > 0);
-
-    return ids.length > 0 ? ids : null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 export async function resolveCatalogue(): Promise<Catalogue> {
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
 
-  const provider = isConfigured() ? await fetchProviderIds() : null;
-  const allowed = configuredModelIds();
+  const allowed = allowedModelIds();
+  const permitted = allowed
+    ? CATALOGUE.filter((model) => allowed.includes(model.id))
+    : CATALOGUE;
 
-  const models: ModelOption[] = CURATED_MODELS.map((model) => {
-    // An unreachable provider means *unknown*, not unavailable. Marking every
-    // model dead because one request timed out would empty the picker over a
-    // blip, which is the same mistake as reporting an unrun check as clean.
-    const servedByProvider = provider === null || provider.includes(model.id);
-    const permittedHere = !allowed || allowed.includes(model.id);
+  const checked = await Promise.all(
+    permitted.map(async (model) => ({
+      model,
+      routes: await usableRoutes(model),
+    })),
+  );
 
-    if (!permittedHere) {
-      return {
-        ...model,
-        available: false,
-        unavailableReason: "Not enabled on this deployment.",
-      };
-    }
-    if (!servedByProvider) {
-      return {
-        ...model,
-        available: false,
-        unavailableReason: "Requires provider access on this API key.",
-      };
-    }
-    return { ...model, available: true };
-  });
-
-  const firstAvailable = models.find((model) => model.available);
+  const models = checked
+    .filter((entry) => entry.routes.length > 0)
+    // `routes` is deliberately dropped before this reaches the browser. It
+    // names hosts and provider ids — the shape of the plumbing, and no part of
+    // choosing a model.
+    .map(({ model }): OfferedModel => ({
+      id: model.id,
+      label: model.label,
+      provider: model.provider,
+      description: model.description,
+      contextTokens: model.contextTokens,
+      badges: model.badges,
+    }));
 
   const value: Catalogue = {
     models,
-    // Never default to something that cannot answer.
-    defaultModel: firstAvailable?.id ?? FALLBACK_MODEL_ID,
-    live: provider !== null,
+    defaultModel: models[0]?.id ?? DEFAULT_MODEL_ID,
   };
 
   cached = { at: Date.now(), value };
@@ -98,20 +61,17 @@ export async function resolveCatalogue(): Promise<Catalogue> {
 }
 
 /**
- * The model to actually send, given what the client asked for.
+ * The model to actually use, given what the client asked for.
  *
- * Validated against the catalogue rather than passed through. The request body
- * is public: without this, anyone could name any string as the model — a typo
- * becomes a 400 mid-stream, and a real id outside the list bills this
- * deployment for a model it never chose to offer.
+ * Validated against what is offered rather than passed through. The request
+ * body is public: an unvalidated id reaches a provider as a 400 mid-stream, or
+ * bills this deployment for something it never chose to offer.
  */
 export async function resolveModel(requested: unknown): Promise<string> {
   const { models, defaultModel } = await resolveCatalogue();
 
   if (typeof requested === "string" && requested.trim()) {
-    const match = models.find((model) => model.id === requested);
-    if (match?.available) return match.id;
+    if (models.some((model) => model.id === requested)) return requested;
   }
-
   return defaultModel;
 }
