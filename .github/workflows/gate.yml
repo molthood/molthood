@@ -4,8 +4,7 @@ name: Gate
 # This is the only thing standing between a bad push and production.
 on:
   push:
-  
-  
+    branches: [main]
   pull_request:
 
 concurrency:
