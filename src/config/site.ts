@@ -27,6 +27,12 @@ export const CONSOLE_URL =
 /** The public repository. Checked before being linked — it answers 200. */
 export const GITHUB_URL = "https://github.com/molthood";
 
+/** The X account. */
+export const X_URL = "https://x.com/molthood_org";
+
+/** The handle alone, for the Twitter card's `site` and `creator` fields. */
+export const X_HANDLE = "@molthood_org";
+
 export const siteConfig = {
   name: "Molthood",
   tagline: "AI Execution Agents for Robinhood Chain.",
@@ -43,6 +49,7 @@ export const siteConfig = {
     // documentation page cannot have it.
     api: `${DOCS_URL}/api`,
     github: GITHUB_URL,
+    x: X_URL,
     agent: `${SITE_URL}/askmoltagent`,
   },
 } as const;
@@ -81,6 +88,7 @@ export const mainNav: NavItem[] = [
   },
   { label: "Docs", href: DOCS_URL },
   { label: "GitHub", href: GITHUB_URL, external: true },
+  { label: "X", href: X_URL, external: true },
 ];
 
 /**
@@ -98,4 +106,5 @@ export const footerNav: NavItem[] = [
   { label: "API reference", href: `${DOCS_URL}/api` },
   { label: "Roadmap", href: `${DOCS_URL}/roadmap` },
   { label: "GitHub", href: GITHUB_URL, external: true },
+  { label: "X", href: X_URL, external: true },
 ];

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 
-import { siteConfig } from "@/config/site";
+import { X_HANDLE, siteConfig } from "@/config/site";
 import { fontVariables } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +29,8 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
   },
   twitter: {
+    site: X_HANDLE,
+    creator: X_HANDLE,
     card: "summary_large_image",
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { siteConfig } from "@/config/site";
+import { X_HANDLE, siteConfig } from "@/config/site";
 
 /**
  * Per-page metadata, including the social card.
@@ -40,6 +40,8 @@ export function pageMetadata({
     },
     twitter: {
       card: "summary_large_image",
+      site: X_HANDLE,
+      creator: X_HANDLE,
       title: headline,
       description,
     },
