@@ -124,7 +124,10 @@ async function request(
 
   try {
     const response = await fetch(`${MOLTHOOD_API_URL}/api/v1${path}`, {
-      headers: authed ? { "X-API-Key": MOLTHOOD_API_KEY } : {},
+      // Bearer, not `X-API-Key`. The backend mounts `HTTPBearer`, so the
+      // other header is simply absent and every call came back 401 — with the
+      // key correctly set, which is what made it look like a key problem.
+      headers: authed ? { Authorization: `Bearer ${MOLTHOOD_API_KEY}` } : {},
       signal: controller.signal,
       cache: "no-store",
     });
