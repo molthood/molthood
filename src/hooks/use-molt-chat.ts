@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import type { ModelOption } from "@/lib/ai/models";
+
 /**
  * Conversation state for Molt AI: streaming, history, persistence.
  *
@@ -13,6 +15,7 @@ import * as React from "react";
 
 const STORAGE_KEY = "molthood.ai.conversations.v1";
 const ACTIVE_KEY = "molthood.ai.active.v1";
+const MODEL_KEY = "molthood.ai.model.v1";
 
 export type ToolEvent = {
   name: string;
@@ -81,7 +84,14 @@ export function useMoltChat() {
   const [activeId, setActiveId] = React.useState<string>("");
   const [streaming, setStreaming] = React.useState(false);
   const [thinking, setThinking] = React.useState(false);
+  const [models, setModels] = React.useState<ModelOption[]>([]);
+  const [model, setModel] = React.useState("");
   const abortRef = React.useRef<AbortController | null>(null);
+
+  // Read inside the request rather than from state, so a model chosen while an
+  // answer is streaming cannot rewrite the model of the request in flight.
+  const modelRef = React.useRef("");
+  modelRef.current = model;
 
   // Hydrated in an effect rather than in the initial state: reading
   // `localStorage` during render produces server and client markup that
@@ -91,6 +101,48 @@ export function useMoltChat() {
     setConversations(stored);
     setActiveId(id);
   }, []);
+
+  // The catalogue comes from the server because the provider key does. A
+  // failure here is not fatal: the route falls back to the configured default,
+  // so an empty picker still sends a working request.
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const stored = (() => {
+      try {
+        return window.localStorage.getItem(MODEL_KEY) ?? "";
+      } catch {
+        return "";
+      }
+    })();
+
+    fetch("/api/ai/models")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body: { models?: ModelOption[]; defaultModel?: string } | null) => {
+        if (cancelled || !body?.models) return;
+        setModels(body.models);
+        // A remembered model that the provider has since dropped falls back to
+        // the default rather than sending an id nothing will accept.
+        const known = body.models.some((option) => option.id === stored);
+        setModel(known ? stored : (body.defaultModel ?? body.models[0]?.id ?? ""));
+      })
+      .catch(() => {
+        // Handled by the fallback above.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!model) return;
+    try {
+      window.localStorage.setItem(MODEL_KEY, model);
+    } catch {
+      // Private mode. The choice simply does not survive a reload.
+    }
+  }, [model]);
 
   React.useEffect(() => {
     if (conversations.length === 0) return;
@@ -160,6 +212,7 @@ export function useMoltChat() {
           signal: controller.signal,
           body: JSON.stringify({
             messages: history.map(({ role, content }) => ({ role, content })),
+            model: modelRef.current || undefined,
           }),
         });
 
@@ -191,6 +244,7 @@ export function useMoltChat() {
 
             let payload: {
               type: string;
+              id?: string;
               text?: string;
               message?: string;
               name?: string;
@@ -210,6 +264,11 @@ export function useMoltChat() {
                 ...message,
                 content: message.content + payload.text,
               }));
+            } else if (payload.type === "model" && payload.id) {
+              // The server may have substituted the default for a model this
+              // deployment no longer offers. Follow it, so the picker never
+              // credits an answer to a model that did not produce it.
+              if (payload.id !== modelRef.current) setModel(payload.id);
             } else if (payload.type === "thinking") {
               setThinking(true);
             } else if (payload.type === "tool" && payload.name && payload.label) {
@@ -326,6 +385,9 @@ export function useMoltChat() {
     conversations,
     active,
     activeId,
+    models,
+    model,
+    setModel,
     streaming,
     thinking,
     /** False until `localStorage` has been read, so the shell can hold still. */

@@ -12,7 +12,8 @@
  * uninterrupted message plus tool events it can render as a timeline.
  */
 
-import { AI_API_KEY, AI_BASE_URL, AI_MODEL, isConfigured } from "@/lib/ai/config";
+import { resolveModel } from "@/lib/ai/catalogue";
+import { AI_API_KEY, AI_BASE_URL, isConfigured } from "@/lib/ai/config";
 import { SYSTEM_PROMPT } from "@/lib/ai/system-prompt";
 import { TOOL_LABELS, TOOL_SCHEMAS, runTool } from "@/lib/ai/tools";
 
@@ -87,6 +88,7 @@ type RoundResult = {
 /** One streamed completion. Emits text deltas as they arrive. */
 async function streamRound(
   messages: ChatMessage[],
+  model: string,
   controller: ReadableStreamDefaultController<Uint8Array>,
   signal: AbortSignal,
   allowTools: boolean,
@@ -99,7 +101,7 @@ async function streamRound(
     },
     signal,
     body: JSON.stringify({
-      model: AI_MODEL,
+      model,
       messages,
       stream: true,
       ...(allowTools ? { tools: TOOL_SCHEMAS, tool_choice: "auto" } : {}),
@@ -248,7 +250,7 @@ export async function POST(request: Request) {
     );
   }
 
-  let body: { messages?: IncomingMessage[] };
+  let body: { messages?: IncomingMessage[]; model?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -271,6 +273,8 @@ export async function POST(request: Request) {
     return Response.json({ error: "No messages to answer.", code: "bad_request" }, { status: 400 });
   }
 
+  const model = await resolveModel(body.model);
+
   const messages: ChatMessage[] = [
     { role: "system", content: SYSTEM_PROMPT },
     ...incoming.map((message) => ({ role: message.role, content: message.content })),
@@ -278,6 +282,11 @@ export async function POST(request: Request) {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      // Named up front, because the client may have asked for a model this
+      // deployment does not offer and been given the default instead. A UI
+      // showing one model while another answered is a lie the user cannot see.
+      controller.enqueue(event({ type: "model", id: model }));
+
       try {
         for (let round = 0; round <= MAX_TOOL_ROUNDS; round += 1) {
           // The final round drops the tools entirely, so the model cannot ask
@@ -285,6 +294,7 @@ export async function POST(request: Request) {
           const allowTools = round < MAX_TOOL_ROUNDS;
           const result = await streamRound(
             messages,
+            model,
             controller,
             request.signal,
             allowTools,

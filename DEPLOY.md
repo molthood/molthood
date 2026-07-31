@@ -250,7 +250,16 @@ every visitor.
 | ------------- | --------------------------- |
 | `AI_BASE_URL` | `https://gorouter.app/v1`   |
 | `AI_MODEL`    | `claude-opus-5-thinking`    |
+| `AI_MODELS`   | optional — see below        |
 | `AI_API_KEY`  | the provider key            |
+
+The selector is populated from the provider's own `GET /v1/models`, so a model
+added upstream appears without a deploy. `AI_MODELS` is a comma-separated
+allow-list: unset, the picker offers everything the provider lists; set, it
+narrows that list, and it becomes the list outright if the provider cannot be
+reached. Whatever the client asks for is validated against the result before
+it reaches the provider — the request body is public, and an unvalidated model
+field bills this deployment for anything a stranger cares to name.
 
 Without `AI_API_KEY` the page still renders and `/api/ai/chat` answers 503
 with a message the UI shows as a retry panel. Nothing crashes; the feature is

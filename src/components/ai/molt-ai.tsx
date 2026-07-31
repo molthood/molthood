@@ -6,6 +6,7 @@ import { PanelLeft, X } from "lucide-react";
 import { ChatMessage } from "@/components/ai/chat-message";
 import { Composer } from "@/components/ai/composer";
 import { ConversationList } from "@/components/ai/conversation-list";
+import { ModelPicker } from "@/components/ai/model-picker";
 import { LogoMark } from "@/components/brand/logo";
 import { AI_CAPABILITIES, AI_NAME, AI_TAGLINE, EXAMPLE_PROMPTS } from "@/config/ai";
 import { useMoltChat } from "@/hooks/use-molt-chat";
@@ -196,6 +197,21 @@ function MoltAi() {
               draft={draft}
               onDraftChange={setDraft}
             />
+
+            {chat.models.length > 0 ? (
+              <div className="mt-2 flex justify-center">
+                <ModelPicker
+                  models={chat.models}
+                  value={chat.model}
+                  onChange={chat.setModel}
+                  // Locked mid-answer: the request in flight already named one,
+                  // and a picker that changed while tokens arrived would claim
+                  // the text on screen came from a model that never saw it.
+                  disabled={chat.streaming}
+                />
+              </div>
+            ) : null}
+
             <p className="text-muted mt-2 text-center text-[11px] font-medium">
               {chat.thinking
                 ? "Reasoning…"
