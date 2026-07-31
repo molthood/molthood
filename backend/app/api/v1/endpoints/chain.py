@@ -162,9 +162,7 @@ _TX_HASH = re.compile(r"^0x[0-9a-fA-F]{64}$")
         "is indistinguishable from one that succeeded without it."
     ),
 )
-async def chain_transaction(
-    services: ServiceRegistryDep, tx_hash: str
-) -> dict[str, Any]:
+async def chain_transaction(services: ServiceRegistryDep, tx_hash: str) -> dict[str, Any]:
     if not _TX_HASH.match(tx_hash):
         raise ValidationError(
             "A transaction hash is 0x followed by 64 hex characters.",
