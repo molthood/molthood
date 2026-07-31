@@ -46,6 +46,14 @@ export type NavItem = {
   label: string;
   href: string;
   external?: boolean;
+  /**
+   * The pathname that marks this item current.
+   *
+   * Needed because a cross-surface link is an absolute URL, and comparing one
+   * to `usePathname()` never matches — every such item would render as
+   * inactive on the page it points at.
+   */
+  activePath?: string;
 };
 
 /**
@@ -59,6 +67,7 @@ export const mainNav: NavItem[] = [
   // Absolute, but not `external`: it is the same product on another host,
   // so it should navigate in place rather than open a tab with an
   // outbound-link icon promising somebody else's site.
+  { label: "AI", href: `${SITE_URL}/ai`, activePath: "/ai" },
   { label: "Console", href: CONSOLE_URL },
   { label: "Docs", href: DOCS_URL },
   { label: "Developers", href: DASHBOARD_URL },
@@ -70,6 +79,7 @@ export const footerNav: NavItem[] = [
   // Absolute, but not `external`: it is the same product on another host,
   // so it should navigate in place rather than open a tab with an
   // outbound-link icon promising somebody else's site.
+  { label: "AI", href: `${SITE_URL}/ai`, activePath: "/ai" },
   { label: "Console", href: CONSOLE_URL },
   { label: "Docs", href: DOCS_URL },
   { label: "Developers", href: DASHBOARD_URL },

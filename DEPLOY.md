@@ -238,3 +238,41 @@ Honest gaps, so nothing here reads as more finished than it is:
   it is not a global limit. Spend is capped in the database, which is the part
   that actually guards money.
 - **No error tracking.** PostHog collects product analytics, not exceptions.
+
+## Molt AI
+
+The assistant at `molthood.org/ai`. Three variables on Vercel, all
+server-side — `AI_API_KEY` must never gain a `NEXT_PUBLIC_` prefix, which
+would inline a billed inference key into the JavaScript bundle served to
+every visitor.
+
+| Variable      | Value                       |
+| ------------- | --------------------------- |
+| `AI_BASE_URL` | `https://gorouter.app/v1`   |
+| `AI_MODEL`    | `claude-opus-5-thinking`    |
+| `AI_API_KEY`  | the provider key            |
+
+Without `AI_API_KEY` the page still renders and `/api/ai/chat` answers 503
+with a message the UI shows as a retry panel. Nothing crashes; the feature is
+simply off.
+
+### Letting it run real analyses
+
+`MOLTHOOD_API_KEY` is optional and unset by default. Without it the assistant's
+`analyse_subject` tool reports `missing_key` and the model says the check did
+not run — it does not answer from memory and present it as a result. Chain
+statistics and token search need no key and work either way.
+
+To turn it on:
+
+```bash
+curl -X POST https://api.molthood.org/api/v1/keys   -H "Content-Type: application/json"   -d '{"label":"Molt AI"}'
+```
+
+Then set the returned key as `MOLTHOOD_API_KEY` in Vercel and redeploy.
+
+Two consequences worth knowing before doing it. The key is **shared by every
+visitor**, so its daily allowance is consumed collectively; when it runs out
+the tool reports `rate_limited` rather than failing silently. And every
+analysis it runs is recorded against that key, so the wallets and tokens
+strangers ask about all land in one execution history.

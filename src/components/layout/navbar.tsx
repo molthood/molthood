@@ -10,13 +10,14 @@ import { Logo } from "@/components/brand/logo";
 import { Container } from "@/components/layout/container";
 import { SectionDivider } from "@/components/layout/divider";
 import { Button } from "@/components/ui/button";
-import { SITE_URL, mainNav, siteConfig } from "@/config/site";
+import { SITE_URL, mainNav, siteConfig, type NavItem } from "@/config/site";
 import { useScrolled } from "@/hooks/use-scrolled";
 import { cn } from "@/lib/utils";
 
-function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
+function isActive(pathname: string, item: NavItem) {
+  const target = item.activePath ?? item.href;
+  if (target === "/") return pathname === "/";
+  return pathname === target || pathname.startsWith(`${target}/`);
 }
 
 function Navbar() {
@@ -76,13 +77,13 @@ function Navbar() {
                   target={item.external ? "_blank" : undefined}
                   rel={item.external ? "noreferrer noopener" : undefined}
                   aria-current={
-                    isActive(pathname, item.href) && !item.external
+                    isActive(pathname, item) && !item.external
                       ? "page"
                       : undefined
                   }
                   className={cn(
                     "relative inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold transition-colors duration-150",
-                    isActive(pathname, item.href) && !item.external
+                    isActive(pathname, item) && !item.external
                       ? "text-primary"
                       : "text-muted hover:text-foreground",
                   )}
@@ -95,7 +96,7 @@ function Navbar() {
                   {/* A shared `layoutId` makes the marker travel between items
                       rather than cross-fading — the detail that separates a
                       considered navigation from a coloured link. */}
-                  {isActive(pathname, item.href) && !item.external ? (
+                  {isActive(pathname, item) && !item.external ? (
                     <motion.span
                       layoutId="nav-active"
                       className="bg-primary absolute inset-x-3 -bottom-px h-px"
@@ -160,7 +161,7 @@ function Navbar() {
                       rel={item.external ? "noreferrer noopener" : undefined}
                       className={cn(
                         "flex items-center justify-between rounded-md px-3 py-2.5 text-sm font-semibold transition-colors",
-                        isActive(pathname, item.href) && !item.external
+                        isActive(pathname, item) && !item.external
                           ? "text-primary bg-surface-raised"
                           : "text-muted hover:text-foreground hover:bg-surface",
                       )}
