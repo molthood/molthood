@@ -27,7 +27,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-dvh bg-background">
-      <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
+      <header className="molthood-on-dark sticky top-0 z-40 border-b border-border bg-background">
         <div className="mx-auto flex h-14 w-full max-w-[100rem] items-center gap-3 px-5 sm:px-8">
           <button
             type="button"
@@ -43,7 +43,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               once. The badge names which surface they are on. */}
           <span className="flex min-w-0 items-center gap-2">
             <a href={SITE_URL} className="transition-opacity hover:opacity-80">
-              <Logo />
+              <Logo onDark />
             </a>
             <Link
               href="/"

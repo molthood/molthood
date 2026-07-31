@@ -426,3 +426,29 @@ body::after {
   );
   opacity: 0.5;
 }
+
+
+/* The black header band, as a palette rather than a repaint.
+ *
+ * Tailwind v4 compiles `text-muted` to `color: var(--color-muted)`, so
+ * remapping the tokens on the header re-colours everything inside it —
+ * breadcrumbs, the search chip, the kbd keys, the bell — without threading an
+ * `onDark` prop through six components that have no reason to know.
+ *
+ * It also means the existing `bg-background/85` on the topbar resolves to
+ * black at 85% here, so the blur and the translucency survive untouched.
+ *
+ * Dropdown panels are portalled to the body and therefore fall outside this
+ * scope, which is correct: a menu is its own surface and stays on the field. */
+.molthood-on-dark {
+  --color-background: #000000;
+  --color-surface: #0e0e0e;
+  --color-surface-raised: #1a1a1a;
+  --color-border: rgba(255, 255, 255, 0.14);
+  --color-border-strong: rgba(255, 255, 255, 0.3);
+  /* Text is the field green, the same pairing the site navbar uses, so the
+   * band reads as one bar across all four surfaces. 12.77:1 on black. */
+  --color-foreground: #aed92f;
+  --color-muted: #7d9d22;
+  --color-primary: #aed92f;
+}

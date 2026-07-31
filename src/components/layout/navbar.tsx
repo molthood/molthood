@@ -46,7 +46,7 @@ function Navbar() {
         // transition existed to introduce a background that is now always
         // there.
         "sticky top-0 z-50 w-full bg-black transition-shadow duration-200 ease-out",
-        scrolled || open ? "shadow-[0_1px_0_0_rgba(174,217,47,0.14)]" : "",
+        scrolled || open ? "shadow-[0_1px_0_0_rgba(255,255,255,0.12)]" : "",
       )}
     >
       <Container size="xl">

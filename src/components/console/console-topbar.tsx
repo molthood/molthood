@@ -21,8 +21,8 @@ function ConsoleTopbar({ onOpenSidebar, className }: ConsoleTopbarProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-border",
-        "bg-background/85 px-4 backdrop-blur-md sm:px-6",
+        "molthood-on-dark sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3",
+        "border-b border-border bg-background px-4 sm:px-6",
         className,
       )}
     >
