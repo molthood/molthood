@@ -292,6 +292,17 @@ export async function POST(request: Request) {
 
           if (result.toolCalls.length === 0) break;
 
+          // The model often narrates before calling a tool ("I'll run the
+          // analysis now"), and the next round resumes in the same message —
+          // so without this the sentence collides with the heading that
+          // follows it: "…now.# Hoodrat".
+          if (result.text.trim() && !result.text.endsWith("
+")) {
+            controller.enqueue(event({ type: "delta", text: "
+
+" }));
+          }
+
           messages.push({
             role: "assistant",
             content: result.text || null,
