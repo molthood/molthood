@@ -296,11 +296,8 @@ export async function POST(request: Request) {
           // analysis now"), and the next round resumes in the same message —
           // so without this the sentence collides with the heading that
           // follows it: "…now.# Hoodrat".
-          if (result.text.trim() && !result.text.endsWith("
-")) {
-            controller.enqueue(event({ type: "delta", text: "
-
-" }));
+          if (result.text.trim() && !result.text.endsWith("\n")) {
+            controller.enqueue(event({ type: "delta", text: "\n\n" }));
           }
 
           messages.push({
