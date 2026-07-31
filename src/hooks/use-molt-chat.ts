@@ -135,9 +135,11 @@ export function useMoltChat() {
       .then((body: { models?: ModelOption[]; defaultModel?: string } | null) => {
         if (cancelled || !body?.models) return;
         setModels(body.models);
-        // A remembered model that the provider has since dropped falls back to
-        // the default rather than sending an id nothing will accept.
-        const known = body.models.some((option) => option.id === stored);
+        // A remembered model that has since become unreachable falls back to
+        // the default rather than sending an id the provider will refuse.
+        const known = body.models.some(
+          (option) => option.id === stored && option.available,
+        );
         setModel(known ? stored : (body.defaultModel ?? body.models[0]?.id ?? ""));
       })
       .catch(() => {

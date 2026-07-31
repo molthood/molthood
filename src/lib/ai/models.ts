@@ -1,107 +1,106 @@
 /**
  * The model catalogue behind Molthood Agent's selector.
  *
- * GoRouter exposes `GET /v1/models`, so the list is fetched rather than
- * written down — a model added upstream appears in the selector without a
- * deploy. What the endpoint returns is only `id`, `owned_by` and which
- * endpoint styles it speaks: no context window, no pricing, no latency.
+ * Four models, curated. One entry per model rather than one per generation:
+ * a picker offering Opus 5 and Opus 4.8 side by side asks people to make a
+ * decision they have no basis for, and the older one is never the right answer.
  *
- * That shortage is why the badges below are declared as **editorial labels**
- * rather than derived from a measurement. Printing "Long Context" next to a
- * number the provider never sent would be exactly the invented-placeholder
- * failure the rest of this codebase is built to avoid. These say how we
- * position a model, and the code says so out loud instead of implying it
- * measured something.
+ * Availability is checked against the provider rather than assumed. A model
+ * this deployment's key cannot reach is shown and disabled, not hidden — a
+ * missing entry looks like a model that was never offered, and the difference
+ * matters to whoever has to enable it.
  */
 
 export type ModelBadge =
   | "Fast"
-  | "Best Reasoning"
+  | "Premium"
   | "Coding"
-  | "Long Context"
-  | "Premium";
+  | "Research"
+  | "Reasoning"
+  | "Long context";
+
+/** Whose model it is. Drives the mark drawn beside the name. */
+export type ModelProvider = "anthropic" | "openai" | "google" | "deepseek";
 
 export type ModelOption = {
   id: string;
   label: string;
-  /** One line under the name in the picker. */
+  provider: ModelProvider;
+  /** The one-line pitch, in the picker under the name. */
   description: string;
+  /** Context window in tokens, for display. */
+  contextTokens: number;
   badges: ModelBadge[];
+  /** False when the provider will not serve it to this deployment. */
+  available: boolean;
+  /** Why not. Shown in the picker so the gap is actionable. */
+  unavailableReason?: string;
 };
 
-/** Every model this deployment is willing to send a request to. */
-export const DEFAULT_MODEL_IDS = [
-  "claude-opus-5-thinking",
-  "claude-opus-5",
-  "claude-opus-4-8-thinking",
-  "claude-opus-4-8",
+export type CuratedModel = Omit<ModelOption, "available" | "unavailableReason">;
+
+/**
+ * The four, in the order they should be offered.
+ *
+ * `id` is the string sent to the provider. Where a provider names a model
+ * differently from how people do, the label is the human one — nobody asks for
+ * `claude-opus-5-thinking`.
+ */
+export const CURATED_MODELS: CuratedModel[] = [
+  {
+    id: "claude-opus-5-thinking",
+    label: "Claude Opus 5 Thinking",
+    provider: "anthropic",
+    description: "Best for deep reasoning and crypto research.",
+    contextTokens: 1_000_000,
+    badges: ["Reasoning", "Research", "Premium", "Long context"],
+  },
+  {
+    id: "gpt-5",
+    label: "GPT-5",
+    provider: "openai",
+    description: "Best for general AI, writing and coding.",
+    contextTokens: 400_000,
+    badges: ["Coding", "Premium", "Fast"],
+  },
+  {
+    id: "gemini-2.5-pro",
+    label: "Gemini 2.5 Pro",
+    provider: "google",
+    description: "Best for long documents and multimodal reasoning.",
+    contextTokens: 2_000_000,
+    badges: ["Long context", "Research", "Premium"],
+  },
+  {
+    id: "deepseek-v3.1",
+    label: "DeepSeek V3.1",
+    provider: "deepseek",
+    description: "Best value for coding and fast responses.",
+    contextTokens: 128_000,
+    badges: ["Fast", "Coding"],
+  },
 ];
 
-/**
- * Editorial positioning, keyed by model id.
- *
- * A `-thinking` variant spends tokens on reasoning before answering, so it
- * gets "Best Reasoning" and never "Fast" — the two are a trade, and a picker
- * that claimed both would be telling people nothing.
- */
-const CURATED: Record<string, { description: string; badges: ModelBadge[] }> = {
-  "claude-opus-5-thinking": {
-    description: "Reasons before answering. Best for analysis and hard questions.",
-    badges: ["Best Reasoning", "Long Context", "Premium"],
-  },
-  "claude-opus-5": {
-    description: "Answers immediately. Best for writing, code and quick turns.",
-    badges: ["Fast", "Coding", "Long Context", "Premium"],
-  },
-  "claude-opus-4-8-thinking": {
-    description: "The previous generation, reasoning first.",
-    badges: ["Best Reasoning", "Long Context"],
-  },
-  "claude-opus-4-8": {
-    description: "The previous generation, answering directly.",
-    badges: ["Fast", "Coding", "Long Context"],
-  },
-};
+/** Ids the provider must confirm before a model becomes selectable. */
+export const CURATED_IDS = CURATED_MODELS.map((model) => model.id);
 
-/** `claude-opus-5-thinking` → `Opus 5 Thinking`. */
-function titleFrom(id: string): string {
-  return id
-    .split(/[-_]/)
-    .filter((part) => part !== "claude")
-    .map((part) =>
-      /^\d/.test(part) ? part : part.charAt(0).toUpperCase() + part.slice(1),
-    )
-    .join(" ")
-    .replace(/(\d) (\d)/g, "$1.$2");
-}
+/** The one used when nothing else is available or chosen. */
+export const FALLBACK_MODEL_ID = CURATED_MODELS[0].id;
 
-/**
- * Badges for a model nobody curated.
- *
- * Deliberately thin. An unknown id supports exactly one honest inference —
- * whether it reasons first — and guessing the rest from a name would put a
- * "Coding" badge on something nobody has run.
- */
-function inferBadges(id: string): ModelBadge[] {
-  return id.includes("thinking") ? ["Best Reasoning"] : ["Fast"];
-}
-
-export function describeModel(id: string): ModelOption {
-  const curated = CURATED[id];
-  return {
-    id,
-    label: titleFrom(id),
-    description: curated?.description ?? "Available through the same provider.",
-    badges: curated?.badges ?? inferBadges(id),
-  };
+export function formatContext(tokens: number): string {
+  if (tokens >= 1_000_000) {
+    const millions = tokens / 1_000_000;
+    return `${Number.isInteger(millions) ? millions : millions.toFixed(1)}M context`;
+  }
+  return `${Math.round(tokens / 1000)}K context`;
 }
 
 /**
  * The allow-list, from `AI_MODELS` when set.
  *
- * Comma-separated ids. Used both as the fallback when the provider's catalogue
- * cannot be reached and as a filter over it, so an operator can narrow what a
- * public deployment is willing to spend on.
+ * Narrows the four rather than extending them. An operator restricting a
+ * public deployment is the case this exists for; adding an uncurated model
+ * would put an entry in the picker with no description and no badges.
  */
 export function configuredModelIds(): string[] | null {
   const raw = process.env.AI_MODELS?.trim();

@@ -6,6 +6,8 @@ import rehypeHighlight from "rehype-highlight";
 import remarkGfm from "remark-gfm";
 import { Check, Copy } from "lucide-react";
 
+import { ArtifactCard } from "@/components/ai/artifact-card";
+import { parseArtifactTag } from "@/lib/ai/artifacts";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,6 +18,34 @@ import { cn } from "@/lib/utils";
  * own palette. A downloaded theme would have brought its own colours and made
  * code the one region of the page that belongs to somebody else's design.
  */
+
+/**
+ * Pulls the fence tag and the raw text back out of the rendered node.
+ *
+ * `react-markdown` hands `pre` an already-built `code` element rather than the
+ * source, so the language lands in `className` and the text in `children`.
+ * Reading it back is less pleasant than being given it, but it is the only
+ * place both are available together.
+ */
+function readFence(children: React.ReactNode): { tag: string; text: string } {
+  const child = React.Children.toArray(children)[0];
+  if (!React.isValidElement(child)) return { tag: "", text: "" };
+
+  const props = child.props as { className?: string; children?: React.ReactNode };
+  const tag = /language-([^\s]+)/.exec(props.className ?? "")?.[1] ?? "";
+
+  const flatten = (node: React.ReactNode): string => {
+    if (typeof node === "string") return node;
+    if (typeof node === "number") return String(node);
+    if (Array.isArray(node)) return node.map(flatten).join("");
+    if (React.isValidElement(node)) {
+      return flatten((node.props as { children?: React.ReactNode }).children);
+    }
+    return "";
+  };
+
+  return { tag, text: flatten(props.children) };
+}
 
 function CodeBlock({ children }: { children: React.ReactNode }) {
   const ref = React.useRef<HTMLPreElement>(null);
@@ -69,7 +99,25 @@ function Markdown({ content }: { content: string }) {
         components={{
           // `pre` carries the copy button; `code` inside it must stay bare or
           // the inline styling would fight the block's.
-          pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
+          //
+          // A fence tagged `artifact:name.ext` becomes a download instead. The
+          // file's contents are never printed into the conversation — a
+          // whitepaper pasted into a chat bubble is not a document, it is four
+          // thousand words between the reader and the next message.
+          pre: ({ children }) => {
+            const { tag, text } = readFence(children);
+            const spec = tag ? parseArtifactTag(tag) : null;
+
+            if (spec && text.trim()) {
+              return (
+                <ArtifactCard
+                  artifact={{ ...spec, content: text.replace(/\n$/, "") }}
+                />
+              );
+            }
+
+            return <CodeBlock>{children}</CodeBlock>;
+          },
           a: ({ href, children }) => (
             <a
               href={href}

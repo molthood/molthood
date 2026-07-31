@@ -1,17 +1,19 @@
 /**
- * The models Molthood Agent will accept, resolved once and shared.
+ * Which of the four models this deployment can actually reach.
  *
- * Fetched from the provider rather than written down, so a model added
- * upstream appears in the selector without a deploy. Cached in the module for
- * a few minutes: the catalogue changes on the order of weeks, and the picker
- * opens on every page load.
+ * The curated list says what Molthood Agent offers; the provider says what it
+ * will serve. Both matter, and conflating them is how a picker ends up with an
+ * entry that 403s the moment somebody chooses it.
+ *
+ * Cached in the module for a few minutes: the answer changes when a key gains
+ * access, which is on the order of never, and the picker opens on every load.
  */
 
-import { AI_API_KEY, AI_BASE_URL, AI_MODEL, isConfigured } from "@/lib/ai/config";
+import { AI_API_KEY, AI_BASE_URL, isConfigured } from "@/lib/ai/config";
 import {
-  DEFAULT_MODEL_IDS,
+  CURATED_MODELS,
+  FALLBACK_MODEL_ID,
   configuredModelIds,
-  describeModel,
   type ModelOption,
 } from "@/lib/ai/models";
 
@@ -20,13 +22,13 @@ const CACHE_MS = 5 * 60 * 1000;
 export type Catalogue = {
   models: ModelOption[];
   defaultModel: string;
-  /** False when the provider could not be reached and this is the fallback. */
+  /** False when the provider could not be asked and this is an assumption. */
   live: boolean;
 };
 
 let cached: { at: number; value: Catalogue } | null = null;
 
-/** Ids the provider says exist, or null when it could not be asked. */
+/** Ids the provider says it serves, or null when it could not be asked. */
 async function fetchProviderIds(): Promise<string[] | null> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8000);
@@ -55,40 +57,39 @@ async function fetchProviderIds(): Promise<string[] | null> {
 export async function resolveCatalogue(): Promise<Catalogue> {
   if (cached && Date.now() - cached.at < CACHE_MS) return cached.value;
 
-  const configured = configuredModelIds();
   const provider = isConfigured() ? await fetchProviderIds() : null;
+  const allowed = configuredModelIds();
 
-  // `AI_MODELS` narrows the provider's list rather than replacing it, so an
-  // operator can restrict a public deployment without having to maintain a
-  // catalogue by hand. When the provider is unreachable it *is* the list.
-  let ids = provider ?? configured ?? DEFAULT_MODEL_IDS;
-  if (provider && configured) {
-    const allowed = new Set(configured);
-    const narrowed = provider.filter((id) => allowed.has(id));
-    // An allow-list that matches nothing is a misconfiguration, not an
-    // instruction to offer no models at all — falling through to an empty
-    // picker would look like the provider was down.
-    if (narrowed.length > 0) ids = narrowed;
-  }
+  const models: ModelOption[] = CURATED_MODELS.map((model) => {
+    // An unreachable provider means *unknown*, not unavailable. Marking every
+    // model dead because one request timed out would empty the picker over a
+    // blip, which is the same mistake as reporting an unrun check as clean.
+    const servedByProvider = provider === null || provider.includes(model.id);
+    const permittedHere = !allowed || allowed.includes(model.id);
 
-  // The configured default belongs in the list even if the catalogue omits it;
-  // it is what an unlabelled request will use.
-  if (!ids.includes(AI_MODEL)) ids = [AI_MODEL, ...ids];
+    if (!permittedHere) {
+      return {
+        ...model,
+        available: false,
+        unavailableReason: "Not enabled on this deployment.",
+      };
+    }
+    if (!servedByProvider) {
+      return {
+        ...model,
+        available: false,
+        unavailableReason: "Requires provider access on this API key.",
+      };
+    }
+    return { ...model, available: true };
+  });
 
-  // The provider returns them in its own order, which put the previous
-  // generation second. Curated order first, then anything new alphabetically —
-  // a picker is a recommendation, and the top entry is the recommendation.
-  const rank = (id: string) => {
-    const index = DEFAULT_MODEL_IDS.indexOf(id);
-    return index === -1 ? DEFAULT_MODEL_IDS.length : index;
-  };
-  const ordered = [...new Set(ids)].sort(
-    (a, b) => rank(a) - rank(b) || a.localeCompare(b),
-  );
+  const firstAvailable = models.find((model) => model.available);
 
   const value: Catalogue = {
-    models: ordered.map(describeModel),
-    defaultModel: AI_MODEL,
+    models,
+    // Never default to something that cannot answer.
+    defaultModel: firstAvailable?.id ?? FALLBACK_MODEL_ID,
     live: provider !== null,
   };
 
@@ -100,13 +101,17 @@ export async function resolveCatalogue(): Promise<Catalogue> {
  * The model to actually send, given what the client asked for.
  *
  * Validated against the catalogue rather than passed through. The request body
- * is public: without this, anyone could name any string as the model — a
- * typo becomes a 400 from the provider mid-stream, and a real id outside the
- * allow-list bills this deployment for a model it never chose to offer.
+ * is public: without this, anyone could name any string as the model — a typo
+ * becomes a 400 mid-stream, and a real id outside the list bills this
+ * deployment for a model it never chose to offer.
  */
 export async function resolveModel(requested: unknown): Promise<string> {
-  if (typeof requested !== "string" || !requested.trim()) return AI_MODEL;
+  const { models, defaultModel } = await resolveCatalogue();
 
-  const { models } = await resolveCatalogue();
-  return models.some((model) => model.id === requested) ? requested : AI_MODEL;
+  if (typeof requested === "string" && requested.trim()) {
+    const match = models.find((model) => model.id === requested);
+    if (match?.available) return match.id;
+  }
+
+  return defaultModel;
 }
