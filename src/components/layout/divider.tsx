@@ -23,11 +23,30 @@ import { cn } from "@/lib/utils";
  * would vanish into the background, so this one darkens toward it: the same
  * intent as a light accent on a dark page, reached from the other side.
  */
-function SectionDivider({ className }: { className?: string }) {
+function SectionDivider({
+  className,
+  onDark = false,
+}: {
+  className?: string;
+  /**
+   * Drawn on a dark surface.
+   *
+   * The direction flips with it: on the field the hairline darkens toward its
+   * centre, because the accent there is ink. On black the accent is the field,
+   * so it brightens instead. Same shape, opposite ink — a single treatment
+   * would vanish on one of the two.
+   */
+  onDark?: boolean;
+}) {
   return (
     <div className={cn("relative", className)} aria-hidden="true">
       <Container size="xl">
-        <div className="molthood-divider relative h-px w-full">
+        <div
+          className={cn(
+            "molthood-divider relative h-px w-full",
+            onDark && "molthood-divider-dark",
+          )}
+        >
           {/* Beneath the line and wider than it is tall, so it reads as the
               page receding rather than as the line casting a shadow. */}
           <span className="molthood-divider-wash absolute inset-x-[10%] top-0 h-5 -translate-y-1/2 blur-[8px]" />
@@ -38,8 +57,15 @@ function SectionDivider({ className }: { className?: string }) {
 
           {/* On the line rather than beside it, so the hairline appears to
               pass behind the mark. */}
-          <span className="bg-background absolute top-1/2 left-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full">
-            <DividerMark />
+          <span
+            className={cn(
+              "absolute top-1/2 left-1/2 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full",
+              // The disc masks the hairline behind the mark, so it has to be
+              // the surface colour rather than a fixed one.
+              onDark ? "bg-black" : "bg-background",
+            )}
+          >
+            <DividerMark onDark={onDark} />
           </span>
         </div>
       </Container>
@@ -54,9 +80,13 @@ function SectionDivider({ className }: { className?: string }) {
  * shrunken logo reads as a mistake rather than a motif; the shape it is built
  * from survives being small.
  */
-function DividerMark() {
+function DividerMark({ onDark = false }: { onDark?: boolean }) {
   return (
-    <svg viewBox="0 0 12 12" className="text-foreground size-2.5" fill="none">
+    <svg
+      viewBox="0 0 12 12"
+      className={cn("size-2.5", onDark ? "text-background" : "text-foreground")}
+      fill="none"
+    >
       <path d="M6 1.5 2.6 10.5 6 8.2V1.5Z" fill="currentColor" fillOpacity="0.4" />
       <path d="M6 1.5 9.4 10.5 6 8.2V1.5Z" fill="currentColor" fillOpacity="0.8" />
     </svg>

@@ -35,6 +35,10 @@
    * invisible. "Brand green" and "readable" only overlap at this end. */
   --color-wordmark: #3d480f;
 
+  /* The same wordmark on black. 12.77:1 there, against 2.13:1 for the deep
+   * green — a brand colour is only legible on the surface it was chosen for. */
+  --color-wordmark-on-dark: #aed92f;
+
   /* Ink — everything that is not the field is black. */
   --color-foreground: #08120d;
   --color-muted: #17200b;
@@ -391,4 +395,34 @@ body::after {
   /* Multiply so the grain darkens rather than fogs — added light on a bright
    * field would wash it out instead of texturing it. */
   mix-blend-mode: multiply;
+}
+
+
+/* The divider on black. Direction reversed: the field is the accent here, so
+ * the hairline brightens toward its centre instead of darkening. A single
+ * treatment cannot serve both surfaces — on black the dark version is the
+ * background, and disappears completely. */
+.molthood-divider-dark .molthood-divider-line {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in oklab, var(--color-background) 22%, transparent) 18%,
+    color-mix(in oklab, var(--color-background) 62%, transparent) 38%,
+    var(--color-background) 50%,
+    color-mix(in oklab, var(--color-background) 62%, transparent) 62%,
+    color-mix(in oklab, var(--color-background) 22%, transparent) 82%,
+    transparent 100%
+  );
+}
+
+.molthood-divider-dark .molthood-divider-wash {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--color-background) 30%, transparent) 42%,
+    color-mix(in oklab, var(--color-background) 42%, transparent) 50%,
+    color-mix(in oklab, var(--color-background) 30%, transparent) 58%,
+    transparent
+  );
+  opacity: 0.5;
 }
