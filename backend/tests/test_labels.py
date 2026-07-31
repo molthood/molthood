@@ -205,3 +205,53 @@ def test_a_supplier_inside_a_value_is_removed() -> None:
     """Agents write prose into values: "0.0% (GoPlus: 0.0%)" reached a reader
     through the data rather than through a label."""
     assert describe_source("0.0% (GoPlus: 0.0%)") == "0.0% (Security screening: 0.0%)"
+
+
+def test_the_execution_response_carries_no_supplier_names() -> None:
+    """The raw analysis response is the path the console and Molt AI read.
+
+    Reports, comparisons and the summariser each redacted their own output,
+    which left this one — so `"Blockscout token page"` and `"GoPlus reports
+    that…"` reached users through both surfaces after the leak was believed
+    closed. The rule belongs at the boundary, not in each consumer.
+    """
+    from app.api.v1.endpoints.execute import to_response
+    from app.engine.result import ExecutionResult
+
+    url = "https://robinhoodchain.blockscout.com/token/0xabc"
+    response = to_response(
+        ExecutionResult(
+            execution_id="e1",
+            status="succeeded",  # type: ignore[arg-type]
+            stage="report",  # type: ignore[arg-type]
+            services_called=["blockscout", "codex", "goplus"],
+            summary="Blockscout shows the contract is verified.",
+            summary_detail="GoPlus screening completed.",
+            facts={"token": {"deployer_share_goplus_pct": 12.0}},
+            evidence=[
+                {
+                    "id": "ev1",
+                    "stage": "engine",
+                    "kind": "verification",
+                    "label": "Blockscout token page",
+                    "source_url": url,
+                    "created_at": "2026-07-31T00:00:00Z",
+                }
+            ],
+            sources=[{"label": "GoPlus token security", "url": url}],
+        )
+    )
+
+    payload = response.model_dump_json()
+    for vendor in ("blockscout", "goplus", "codex"):
+        # The hostname is an address rather than prose, so it is the one place
+        # the name legitimately survives — a rewritten URL is a broken link.
+        without_urls = payload.replace(url, "")
+        assert vendor not in without_urls.lower(), vendor
+
+    # The link still resolves. Rewriting a hostname is the failure mode this
+    # protection exists for: `https://robinhoodchain.Chain explorer.com/…`.
+    dumped = response.model_dump()
+    assert dumped["evidence"][0]["source_url"] == url
+    assert dumped["sources"][0]["url"] == url
+    assert "goplus" not in str(response.facts).lower()

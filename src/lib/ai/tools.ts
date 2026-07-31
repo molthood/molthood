@@ -169,26 +169,39 @@ async function request(
   }
 }
 
-/** Trims an execution down to what the model can use without drowning in it. */
+/**
+ * Trims an execution down to what the model can use without drowning in it.
+ *
+ * Named against the response schema rather than against what a report *ought*
+ * to contain: the first version picked `findings`, `risk`, `score` and
+ * `subject`, none of which exist. `JSON.stringify` drops undefined keys
+ * silently, so the model simply never received the facts — including the risk
+ * signals — and the answers still looked plausible because the evidence list
+ * carries enough to fill the gap. A field that is absent by accident and a
+ * field that is absent because nothing was found are indistinguishable here,
+ * which is the whole problem this codebase is organised around.
+ */
 function summariseExecution(data: unknown): unknown {
   if (typeof data !== "object" || data === null) return data;
   const record = data as Record<string, unknown>;
 
   return {
-    id: record.id,
+    execution_id: record.execution_id,
     target: record.target,
+    address: record.address,
     status: record.status,
-    subject: record.subject,
-    risk: record.risk,
-    score: record.score,
-    findings: record.findings,
+    // Where the score and the risk signals live.
+    facts: record.facts,
     evidence: record.evidence,
     sources: record.sources,
     summary: record.summary,
+    // `not_configured` means no summary was generated, which is different from
+    // an analysis that found nothing worth saying.
     summary_status: record.summary_status,
-    // Kept even when empty: an execution that skipped checks is the case the
-    // model most needs to see, and dropping the field hides it.
-    skipped: record.skipped,
+    // Per-stage outcomes. A skipped or failed stage is the case the model most
+    // needs to see, so it is carried even when everything succeeded.
+    stages: record.stages,
+    error: record.error,
   };
 }
 

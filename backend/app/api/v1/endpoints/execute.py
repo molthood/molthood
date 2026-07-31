@@ -11,7 +11,7 @@ work never happened — a rejected address costs nothing and must not bill.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 
 from fastapi import APIRouter, Path, Query, status
 
@@ -19,6 +19,7 @@ from app.api.auth import CurrentKey
 from app.api.deps import EngineDep
 from app.core.exceptions import UnresolvableHostError
 from app.engine.context import ExecutionRequest
+from app.engine.labels import describe_service, describe_source, redact_facts
 from app.engine.result import ExecutionResult
 from app.repositories.api_keys import KeyIdentity, get_api_key_store
 from app.schemas.execution import ExecutionCreate, ExecutionResponse
@@ -38,8 +39,37 @@ ADDRESS_PATH = Path(
 _TASK_FIELDS = ("id", "sequence", "name", "agent_kind", "status", "duration_ms", "error")
 
 
+#: Fields inside evidence and sources that are prose and get rewritten. `url`
+#: and `source_url` are deliberately absent: a hostname is an address, not a
+#: label, and rewriting one produced `https://robinhoodchain.Chain
+#: explorer.com/…` the last time this was attempted.
+_PROSE_FIELDS = ("label", "detail", "reason", "value", "note")
+
+
+def _redact_items(
+    items: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    return [
+        {
+            key: describe_source(value)
+            if key in _PROSE_FIELDS and isinstance(value, str)
+            else value
+            for key, value in item.items()
+        }
+        for item in items
+    ]
+
+
 def to_response(result: ExecutionResult) -> ExecutionResponse:
-    """Project the engine's result onto the public response schema."""
+    """Project the engine's result onto the public response schema.
+
+    Supplier names are stripped **here**, at the one boundary every analysis
+    passes through, rather than in each consumer. Reports, comparisons and the
+    summariser each redacted their own output, so the raw execution response
+    was the one path that did not — and it is the path the console renders and
+    the assistant reads, which is how "Blockscout token page" and "GoPlus
+    reports…" reached users after the leak was supposedly closed.
+    """
     tasks = [
         {key: task[key] for key in _TASK_FIELDS if key in task} for task in result.tasks
     ]
@@ -51,14 +81,21 @@ def to_response(result: ExecutionResult) -> ExecutionResponse:
         target=result.target,
         address=result.address,
         agents_used=result.agents_used,
-        services_called=result.services_called,
-        summary=result.summary,
+        # The role each one plays, not who it is. This list existed to show
+        # that several independent sources were consulted, which survives the
+        # rename; the supplier's identity was never the point.
+        services_called=[describe_service(name) for name in result.services_called],
+        summary=describe_source(result.summary) if result.summary else result.summary,
         summary_status=result.summary_status,
-        summary_detail=result.summary_detail,
+        summary_detail=(
+            describe_source(result.summary_detail)
+            if result.summary_detail
+            else result.summary_detail
+        ),
         summary_model=result.summary_model,
-        facts=result.facts,
-        evidence=result.evidence,
-        sources=result.sources,
+        facts=redact_facts(result.facts),
+        evidence=_redact_items(result.evidence),
+        sources=_redact_items(result.sources),
         stages=[stage.to_dict() for stage in result.stages],
         tasks=tasks,
         execution_time_ms=result.execution_time_ms,
