@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   Check,
   ChevronRight,
+  Circle,
   Loader2,
   MinusCircle,
   ShieldCheck,
@@ -40,7 +41,9 @@ function Timeline({ steps }: { steps: TimelineStep[] }) {
     <ol className="border-border bg-surface/60 mb-3 flex flex-col gap-1.5 rounded-xl border px-3 py-2.5">
       {steps.map((step, index) => (
         <li key={`${step.id}-${index}`} className="flex items-start gap-2 text-xs font-medium">
-          {step.status === "running" ? (
+          {step.status === "pending" ? (
+            <Circle className="text-muted/50 mt-px size-3.5 shrink-0" />
+          ) : step.status === "running" ? (
             <Loader2 className="text-muted mt-px size-3.5 shrink-0 animate-spin" />
           ) : step.status === "ok" ? (
             <Check className="text-primary mt-px size-3.5 shrink-0" />
@@ -49,7 +52,13 @@ function Timeline({ steps }: { steps: TimelineStep[] }) {
           )}
           <span className="min-w-0">
             <span
-              className={step.status === "unavailable" ? "text-muted" : "text-foreground"}
+              className={
+                step.status === "ok"
+                  ? "text-foreground"
+                  : step.status === "running"
+                    ? "text-foreground"
+                    : "text-muted"
+              }
             >
               {step.label}
             </span>

@@ -228,8 +228,8 @@ function MoltAi() {
             ) : null}
 
             <p className="text-muted mt-2 text-center text-[11px] font-medium">
-              {chat.thinking
-                ? "Reasoning…"
+              {chat.phase
+                ? chat.phase
                 : "Molthood Agent can be wrong. It states what it could not check rather than guessing."}
             </p>
           </div>

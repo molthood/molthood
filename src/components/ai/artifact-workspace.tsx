@@ -7,6 +7,8 @@ import {
   Download,
   ExternalLink,
   Loader2,
+  Maximize2,
+  Minimize2,
   Pencil,
   RefreshCw,
   X,
@@ -132,6 +134,9 @@ function ArtifactWorkspace({ artifact, onClose, onRegenerate }: ArtifactWorkspac
   const [editing, setEditing] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
+  // A deck or a long report needs the width; a CSV rarely does. Which is why
+  // this is a control rather than a breakpoint.
+  const [full, setFull] = React.useState(false);
 
   const edited: Artifact = { ...artifact, content };
 
@@ -195,7 +200,12 @@ function ArtifactWorkspace({ artifact, onClose, onRegenerate }: ArtifactWorkspac
         className="absolute inset-0 bg-black/65 backdrop-blur-[2px]"
       />
 
-      <div className="border-border bg-background relative ml-auto flex h-full w-full max-w-[46rem] flex-col border-l">
+      <div
+        className={cn(
+          "border-border bg-background relative ml-auto flex h-full w-full flex-col border-l",
+          full ? "max-w-none" : "max-w-[46rem]",
+        )}
+      >
         <header className="border-border flex shrink-0 items-center gap-3 border-b px-4 py-3">
           <div className="min-w-0 flex-1">
             <p className="text-foreground truncate text-[13px] font-bold">
@@ -206,6 +216,14 @@ function ArtifactWorkspace({ artifact, onClose, onRegenerate }: ArtifactWorkspac
               {content !== artifact.content ? " · edited" : ""}
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setFull((value) => !value)}
+            aria-label={full ? "Exit fullscreen" : "Fullscreen"}
+            className="text-muted hover:text-foreground hidden size-8 shrink-0 items-center justify-center rounded-md sm:inline-flex"
+          >
+            {full ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+          </button>
           <button
             type="button"
             onClick={onClose}

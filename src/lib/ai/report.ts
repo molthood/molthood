@@ -388,12 +388,15 @@ export function actionsFor(intent: Intent, subject?: string): SuggestedAction[] 
         { label: "Is it maintained?", prompt: `Judge how actively maintained ${it} is, and on what evidence.` },
         { label: "Research the project", prompt: `Research the project behind ${it}.` },
         { label: "Compare alternatives", prompt: `What are the main alternatives to ${it}?` },
+        { label: "Generate docs", prompt: `Write documentation for ${it} as a markdown file.` },
       ];
     case "website":
     case "project":
       return [
         { label: "What is unverifiable?", prompt: `What claims about ${it} could not be verified?` },
         { label: "Research competitors", prompt: `Who competes with ${it}, and how do they differ?` },
+        { label: "Audit the landing page", prompt: `Audit the landing page of ${it}: clarity, claims, and what is missing.` },
+        { label: "Research the GitHub", prompt: `Find and analyse the GitHub repository behind ${it}.` },
         { label: "Find the token", prompt: `Does ${it} have a token on Robinhood Chain?` },
         { label: "Generate X thread", prompt: `Write an X thread about ${it} based on what you found.` },
         { label: "Export PDF", prompt: `Export that research on ${it} as a PDF.` },
@@ -402,6 +405,18 @@ export function actionsFor(intent: Intent, subject?: string): SuggestedAction[] 
       return [
         { label: "Research the project", prompt: `Research the project behind ${it}.` },
         { label: "Find the site", prompt: `Find and analyse the official website for ${it}.` },
+      ];
+    case "artifact":
+      return [
+        { label: "Regenerate shorter", prompt: "Regenerate that file, half the length." },
+        { label: "Export as PDF", prompt: "Export that as a PDF instead." },
+        { label: "Export as DOCX", prompt: "Export that as a DOCX instead." },
+      ];
+    case "molthood":
+      return [
+        { label: "What is shipped?", prompt: "What is actually built and usable in Molthood today?" },
+        { label: "What is next?", prompt: "What is Molthood building next, and why?" },
+        { label: "How does it work?", prompt: "How does a Molthood analysis actually work, step by step?" },
       ];
     case "chain":
       return [

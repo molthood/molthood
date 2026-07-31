@@ -17,6 +17,7 @@ import {
   MOLTHOOD_API_KEY,
   MOLTHOOD_API_URL,
 } from "@/lib/ai/config";
+import { searchKnowledge } from "@/lib/ai/knowledge";
 
 /**
  * Where a finding came from, named by role.
@@ -68,6 +69,22 @@ export const TOOL_SCHEMAS = [
           },
           limit: { type: "integer", description: "How many to return (1-25).", default: 8 },
         },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "molthood_docs",
+      description:
+        "Search Molthood's own documentation, roadmap and product pages. Use for ANY question about Molthood itself — what it does, how it works, what is built, what is planned, its architecture, limits, privacy or supported chains. Never answer those from memory.",
+      parameters: {
+        type: "object",
+        properties: {
+          query: { type: "string", description: "What to look up, in a few words." },
+        },
+        required: ["query"],
         additionalProperties: false,
       },
     },
@@ -161,11 +178,13 @@ export function badgesFor(name: string, args: Record<string, unknown>): string[]
   if (name === "inspect_repository") return ["GitHub"];
   if (name === "find_token") return ["Market Data"];
   if (name === "chain_overview") return ["On-chain Analysis"];
+  if (name === "molthood_docs") return ["Documentation"];
   return [];
 }
 
 export const TOOL_LABELS: Record<string, string> = {
   chain_overview: "Reading chain statistics",
+  molthood_docs: "Searching Molthood's documentation",
   find_token: "Searching tracked tokens",
   explain_transaction: "Reading the transaction",
   inspect_repository: "Reading the repository",
@@ -175,6 +194,7 @@ export const TOOL_LABELS: Record<string, string> = {
 const TIMEOUTS: Record<string, number> = {
   chain_overview: 15_000,
   find_token: 15_000,
+  molthood_docs: 5_000,
   explain_transaction: 20_000,
   inspect_repository: 15_000,
   // A full analysis runs several agents against live sources.
@@ -312,6 +332,23 @@ export async function runTool(
       authed: false,
       sources: [{ role: "Chain node" }],
     });
+  }
+
+  if (name === "molthood_docs") {
+    const query = typeof args.query === "string" ? args.query.trim() : "";
+    const hits = searchKnowledge(query);
+    if (hits.length === 0) {
+      return {
+        available: false,
+        reason: "not_found",
+        detail: `Nothing in Molthood's documentation matches "${query}".`,
+      };
+    }
+    return {
+      available: true,
+      data: { query, pages: hits },
+      sources: hits.map((hit) => ({ role: "Molthood documentation", url: hit.url })),
+    };
   }
 
   if (name === "inspect_repository") {

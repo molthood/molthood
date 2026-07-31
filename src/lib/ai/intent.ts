@@ -22,6 +22,8 @@ export type Intent =
   | "project"
   | "chain"
   | "thread"
+  | "artifact"
+  | "molthood"
   | "general";
 
 export type Detection = {
@@ -40,6 +42,20 @@ const X_PROFILE =
   /(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com\/(@?[A-Za-z0-9_]{1,15})(?:\/)?(?:\?|$|\s)/i;
 const HANDLE = /(?:^|\s)@([A-Za-z0-9_]{2,15})\b/;
 
+/**
+ * Words that mean "give me a file".
+ *
+ * Checked before the subject, because "export that analysis as a PDF" is a
+ * packaging request that happens to mention an analysis — routing it as an
+ * analysis re-runs work that already happened.
+ */
+const ARTIFACT =
+  /\b(export|download|create|generate|make|write|build)\b[^.]{0,40}\b(pdf|docx|word|xlsx|excel|csv|pptx|powerpoint|deck|presentation|markdown|\.md|json|html|svg|mermaid|spreadsheet|whitepaper|report|document|file)\b|\b(landing\s*page|whitepaper|pitch\s*deck|content\s*calendar)\b/i;
+
+/** Questions about Molthood itself, answered from the product's own docs. */
+const MOLTHOOD =
+  /\bmolthood\b|\b(this\s+(product|platform|app|site)|your\s+roadmap|the\s+roadmap)\b/i;
+
 /** Words that mean "write me a thread", regardless of the subject. */
 const THREAD = /\b(x\s*thread|twitter\s*thread|tweet\s*thread|write\s+a\s+thread)\b/i;
 
@@ -55,6 +71,14 @@ export function detectIntent(text: string): Detection {
   // address analysis answers a question nobody asked.
   if (THREAD.test(message)) {
     return { intent: "thread", label: "Recognised a thread request" };
+  }
+
+  if (ARTIFACT.test(message)) {
+    return { intent: "artifact", label: "Recognised a file request" };
+  }
+
+  if (MOLTHOOD.test(message)) {
+    return { intent: "molthood", label: "Searching Molthood's documentation" };
   }
 
   const tx = message.match(TX_HASH);

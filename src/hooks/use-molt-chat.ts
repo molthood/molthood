@@ -29,7 +29,8 @@ const MODEL_KEY = "molthood.ai.model.v1";
 export type TimelineStep = {
   id: string;
   label: string;
-  status: "running" | "ok" | "unavailable";
+  /** `pending` is a planned step that has not been reached yet. */
+  status: "pending" | "running" | "ok" | "unavailable";
   reason?: string;
 };
 
@@ -100,6 +101,8 @@ export function useMoltChat() {
   const [activeId, setActiveId] = React.useState<string>("");
   const [streaming, setStreaming] = React.useState(false);
   const [thinking, setThinking] = React.useState(false);
+  /** What the agent is doing right now, in words. Replaces "Thinking…". */
+  const [phase, setPhase] = React.useState("");
   const [models, setModels] = React.useState<ModelOption[]>([]);
   const [model, setModel] = React.useState("");
   const abortRef = React.useRef<AbortController | null>(null);
@@ -201,6 +204,7 @@ export function useMoltChat() {
       setStreaming(true);
       setThinking(false);
 
+      setPhase("");
       const replyId = newId();
       patchActive((conversation) => ({
         ...conversation,
@@ -269,6 +273,7 @@ export function useMoltChat() {
               reason?: string;
               cards?: AnalysisCard[];
               badges?: string[];
+              steps?: { id: string; label: string }[];
               sources?: SourceRef[];
               actions?: SuggestedAction[];
               level?: Confidence["level"];
@@ -279,8 +284,18 @@ export function useMoltChat() {
               continue;
             }
 
-            if (payload.type === "delta" && payload.text) {
+            if (payload.type === "plan" && payload.steps) {
+              // Shown as pending immediately, then overwritten by real events.
+              patchReply((message) => ({
+                ...message,
+                steps: payload.steps!.map((step) => ({ ...step, status: "pending" as const })),
+              }));
+            } else if (payload.type === "phase" && payload.label) {
+              setThinking(true);
+              setPhase(payload.label);
+            } else if (payload.type === "delta" && payload.text) {
               setThinking(false);
+              setPhase("");
               patchReply((message) => ({
                 ...message,
                 content: message.content + payload.text,
@@ -310,8 +325,15 @@ export function useMoltChat() {
                   status: payload.status ?? "running",
                   reason: payload.reason,
                 };
-                if (index >= 0) steps[index] = next;
-                else steps.push(next);
+                if (index >= 0) {
+                  steps[index] = next;
+                } else {
+                  // A real step supersedes the planned one it stands in for,
+                  // so the list never shows both a guess and its outcome.
+                  const planned = steps.findIndex((step) => step.status === "pending");
+                  if (planned >= 0) steps[planned] = next;
+                  else steps.push(next);
+                }
                 return { ...message, steps };
               });
             } else if (payload.type === "badges" && payload.badges) {
@@ -347,6 +369,13 @@ export function useMoltChat() {
         abortRef.current = null;
         setStreaming(false);
         setThinking(false);
+        setPhase("");
+        // Any planned step never reached is dropped rather than left hanging:
+        // a greyed row after the answer arrives reads as something that failed.
+        patchReply((message) => ({
+          ...message,
+          steps: (message.steps ?? []).filter((step) => step.status !== "pending"),
+        }));
       }
     },
     [patchActive],
@@ -430,6 +459,7 @@ export function useMoltChat() {
     setModel,
     streaming,
     thinking,
+    phase,
     /** False until `localStorage` has been read, so the shell can hold still. */
     ready: conversations.length > 0,
     send,

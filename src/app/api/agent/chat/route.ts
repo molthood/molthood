@@ -31,6 +31,7 @@ import {
   type AnalysisCard,
 } from "@/lib/ai/report";
 import { SYSTEM_PROMPT, briefing } from "@/lib/ai/system-prompt";
+import { phaseLabel, planFor, recordedSteps } from "@/lib/ai/timeline";
 import {
   TOOL_LABELS,
   TOOL_SCHEMAS,
@@ -181,7 +182,10 @@ export async function POST(request: Request) {
                   produced = true;
                   controller.enqueue(event({ type: "delta", text: chunk }));
                 },
-                onReasoning: () => controller.enqueue(event({ type: "thinking" })),
+                onReasoning: () =>
+                  controller.enqueue(
+                    event({ type: "phase", label: phaseLabel(intent, "reasoning") }),
+                  ),
               },
             });
             reportSuccess(route.provider);
@@ -204,23 +208,17 @@ export async function POST(request: Request) {
       // showing one model while another answered is a lie the user cannot see.
       controller.enqueue(event({ type: "model", id: model }));
 
-      // The first timeline row. It resolves immediately — the classification
-      // is a regex, not a request — which is the point: something true appears
-      // before the slow part starts.
+      // The plan, written from the intent and shown before anything slow
+      // starts. A wallet question and a repository question get different
+      // lists because they genuinely do different work.
+      controller.enqueue(event({ type: "plan", steps: planFor(intent) }));
       controller.enqueue(
-        event({ type: "stage", id: "intent", label: detection.label, status: "ok" }),
+        event({ type: "stage", id: "detect", label: detection.label, status: "ok" }),
       );
 
       // The model is resolved before any request goes out, so this row is
       // true the moment it appears rather than after a round trip.
-      controller.enqueue(
-        event({
-          type: "stage",
-          id: "model",
-          label: `Selecting ${selected.label}`,
-          status: "ok",
-        }),
-      );
+
 
       const sources: SourceRef[] = [];
       const cards: AnalysisCard[] = [];
@@ -254,6 +252,9 @@ export async function POST(request: Request) {
             const label = TOOL_LABELS[call.function.name] ?? call.function.name;
             controller.enqueue(
               event({ type: "tool", name: call.function.name, label, status: "running" }),
+            );
+            controller.enqueue(
+              event({ type: "phase", label: phaseLabel(intent, "tools") }),
             );
 
             let args: Record<string, unknown> = {};
@@ -291,6 +292,12 @@ export async function POST(request: Request) {
               }),
             );
 
+            // The engine reports what it actually ran. Those replace the
+            // planned labels — a step nobody performed is never ticked.
+            for (const step of recordedSteps(toolResult.data)) {
+              controller.enqueue(event({ type: "stage", ...step }));
+            }
+
             messages.push({
               role: "tool",
               tool_call_id: call.id,
@@ -303,10 +310,13 @@ export async function POST(request: Request) {
         // rows, so the timeline reads as a sequence rather than a list that
         // filled in from both ends.
         controller.enqueue(
+          event({ type: "phase", label: phaseLabel(intent, "writing") }),
+        );
+        controller.enqueue(
           event({
             type: "stage",
             id: "compose",
-            label: "Building the response",
+            label: intent === "artifact" ? "Packaging the file" : "Building the response",
             status: "ok",
           }),
         );
