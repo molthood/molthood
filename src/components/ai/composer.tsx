@@ -55,8 +55,8 @@ function Composer({ onSend, onStop, streaming, draft, onDraftChange }: ComposerP
           }
         }}
         rows={1}
-        placeholder="Ask Molt AI anything…"
-        aria-label="Message Molt AI"
+        placeholder="Ask Molthood Agent anything…"
+        aria-label="Message Molthood Agent"
         className="text-foreground placeholder:text-muted block max-h-[200px] w-full resize-none bg-transparent px-4 pt-3.5 pb-2 text-[15px] leading-relaxed outline-none"
       />
 

@@ -51,7 +51,8 @@ export default function OverviewPage() {
         <p className="mt-1.5 max-w-[46rem] text-sm leading-relaxed font-medium text-muted">
           Nothing on this page accepts requests yet. The platform itself does —
           analyses run, evidence is collected, and reports are produced in the
-          console. Everything here is about reaching that from outside a browser.
+          console. Everything here is about reaching that from outside a
+          browser.
         </p>
         <a
           href={CONSOLE_URL}

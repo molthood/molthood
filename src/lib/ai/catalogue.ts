@@ -1,5 +1,5 @@
 /**
- * The models Molt AI will accept, resolved once and shared.
+ * The models Molthood Agent will accept, resolved once and shared.
  *
  * Fetched from the provider rather than written down, so a model added
  * upstream appears in the selector without a deploy. Cached in the module for

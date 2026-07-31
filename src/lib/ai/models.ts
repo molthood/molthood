@@ -1,5 +1,5 @@
 /**
- * The model catalogue behind Molt AI's selector.
+ * The model catalogue behind Molthood Agent's selector.
  *
  * GoRouter exposes `GET /v1/models`, so the list is fetched rather than
  * written down — a model added upstream appears in the selector without a

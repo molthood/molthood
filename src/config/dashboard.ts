@@ -4,7 +4,6 @@ import {
   Code2,
   KeyRound,
   LayoutGrid,
-  Map,
   Network,
   Puzzle,
   Settings2,
@@ -63,7 +62,6 @@ export const dashboardNav: DashboardNavItem[] = [
   { label: "Webhooks", href: "/webhooks", icon: Webhook, status: "planned" },
   { label: "Usage", href: "/usage", icon: Gauge, status: "planned" },
   { label: "Changelog", href: "/changelog", icon: BookOpen },
-  { label: "Roadmap", href: "/roadmap", icon: Map },
   { label: "Settings", href: "/settings", icon: Settings2, status: "planned" },
 ];
 
@@ -299,60 +297,6 @@ export const endpointGroups: EndpointGroup[] = [
   },
 ];
 
-export type RoadmapEntry = {
-  phase: "Now" | "Next" | "Later";
-  title: string;
-  description: string;
-  status: Status | "shipped";
-};
-
-export const roadmap: RoadmapEntry[] = [
-  {
-    phase: "Now",
-    title: "AI execution platform",
-    description:
-      "Analyse tokens, wallets, contracts, and websites, with every finding carrying the source it came from. Live today at the console.",
-    status: "shipped",
-  },
-  {
-    phase: "Next",
-    title: "Developer API",
-    description:
-      "The same engine over HTTP, with scoped keys, documented limits, and a response contract that will not move under you.",
-    status: "in-development",
-  },
-  {
-    phase: "Later",
-    title: "MCP server",
-    description:
-      "Compatible AI clients execute workflows through Molthood and read the evidence directly.",
-    status: "planned",
-  },
-  {
-    phase: "Later",
-    title: "CLI",
-    description: "Executions and artifacts from a terminal, scriptable into a build.",
-    status: "planned",
-  },
-  {
-    phase: "Later",
-    title: "SDK",
-    description: "Typed clients for TypeScript, Python, and Go.",
-    status: "planned",
-  },
-  {
-    phase: "Later",
-    title: "Skills marketplace",
-    description: "Publish, version, and install reusable execution workflows.",
-    status: "planned",
-  },
-  {
-    phase: "Later",
-    title: "Webhooks",
-    description: "Execution events delivered as they happen, with signed payloads.",
-    status: "planned",
-  },
-];
 
 export type WebhookEvent = { name: string; description: string };
 

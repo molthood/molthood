@@ -5,7 +5,7 @@ import * as React from "react";
 import type { ModelOption } from "@/lib/ai/models";
 
 /**
- * Conversation state for Molt AI: streaming, history, persistence.
+ * Conversation state for Molthood Agent: streaming, history, persistence.
  *
  * All of it lives in the browser. There is no account system yet, and storing
  * conversations server-side without one would mean either a shared list
@@ -222,7 +222,7 @@ export function useMoltChat() {
             ...message,
             error:
               detail?.error ??
-              "Molt AI could not answer. The provider may be unavailable.",
+              "Molthood Agent could not answer. The provider may be unavailable.",
           }));
           return;
         }

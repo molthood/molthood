@@ -43,31 +43,36 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
           {/* The mark carries the wordmark and is the way back to the site —
               the same rule as the console and the docs, so a visitor learns it
-              once. The badge names which surface they are on. */}
+              once. The badge names which surface they are on.
+              
+              Below `sm` the wordmark is dropped and the mark stands alone: at
+              390px the wordmark, the surface badge and the back link were
+              overlapping each other into an unreadable stack. */}
           <span className="flex min-w-0 items-center gap-2">
             <a href={SITE_URL} className="transition-opacity hover:opacity-80">
-              <Logo />
+              <Logo markOnly className="sm:hidden" />
+              <Logo className="hidden sm:flex" />
             </a>
             <Link
               href="/"
-              className="shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted transition-colors hover:border-border-strong hover:text-foreground"
+              className="hidden shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] font-bold text-muted transition-colors hover:border-border-strong hover:text-foreground sm:inline-block"
             >
               Developers
             </Link>
           </span>
 
-          <BackToLanding className="ml-1" />
+          <BackToLanding className="ml-1 shrink-0" />
 
-          <nav className="ml-auto flex items-center gap-4">
+          <nav className="ml-auto flex shrink-0 items-center gap-4">
             <a
               href={DOCS_URL}
-              className="text-xs font-bold text-muted transition-colors hover:text-foreground"
+              className="hidden text-xs font-bold text-muted transition-colors hover:text-foreground sm:inline"
             >
               Docs
             </a>
             <a
               href={CONSOLE_URL}
-              className="bg-primary text-background hover:bg-primary-hover rounded-lg px-3 py-1.5 text-xs font-bold transition-colors"
+              className="bg-primary text-background hover:bg-primary-hover shrink-0 rounded-lg px-3 py-1.5 text-xs font-bold whitespace-nowrap transition-colors"
             >
               Open console
             </a>

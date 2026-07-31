@@ -24,6 +24,9 @@ export const DASHBOARD_URL =
 export const CONSOLE_URL =
   process.env.NEXT_PUBLIC_CONSOLE_URL ?? "https://console.molthood.org";
 
+/** The public repository. Checked before being linked — it answers 200. */
+export const GITHUB_URL = "https://github.com/molthood";
+
 export const siteConfig = {
   name: "Molthood",
   tagline: "AI Execution Agents for Robinhood Chain.",
@@ -39,6 +42,8 @@ export const siteConfig = {
     // to the API itself — the thing that actually answers requests — and a
     // documentation page cannot have it.
     api: `${DOCS_URL}/api`,
+    github: GITHUB_URL,
+    agent: `${SITE_URL}/askmoltagent`,
   },
 } as const;
 
@@ -59,29 +64,38 @@ export type NavItem = {
 /**
  * Primary top-navigation links.
  *
- * There is no GitHub entry: the source is not published anywhere, and the
- * previous link pointed at github.com's own homepage, which promises a
- * repository and delivers nothing. Add it back alongside a real repository.
+ * Four entries, not six. "API" left the header when the reference became a
+ * documentation page rather than a destination of its own, and the console
+ * keeps its own button beside this list — an application people are asked to
+ * open should look like a call to action, not like a fifth link.
  */
 export const mainNav: NavItem[] = [
-  // Absolute, but not `external`: it is the same product on another host,
-  // so it should navigate in place rather than open a tab with an
-  // outbound-link icon promising somebody else's site.
-  { label: "AI", href: `${SITE_URL}/ai`, activePath: "/ai" },
-  { label: "Console", href: CONSOLE_URL },
+  { label: "Dashboard", href: DASHBOARD_URL },
+  // Absolute, but not `external`: the same product on another path, so it
+  // navigates in place rather than opening a tab with an outbound-link icon
+  // promising somebody else's site.
+  {
+    label: "Ask Molthood Agent",
+    href: `${SITE_URL}/askmoltagent`,
+    activePath: "/askmoltagent",
+  },
   { label: "Docs", href: DOCS_URL },
-  { label: "Developers", href: DASHBOARD_URL },
-  { label: "API", href: `${DOCS_URL}/api` },
+  { label: "GitHub", href: GITHUB_URL, external: true },
 ];
 
-/** Footer links — intentionally the same surface area as the header. */
+/**
+ * Footer links.
+ *
+ * Wider than the header on purpose. A header is a decision — four things
+ * somebody might want next — and a footer is an index, where the entries the
+ * header had to drop still have to be reachable.
+ */
 export const footerNav: NavItem[] = [
-  // Absolute, but not `external`: it is the same product on another host,
-  // so it should navigate in place rather than open a tab with an
-  // outbound-link icon promising somebody else's site.
-  { label: "AI", href: `${SITE_URL}/ai`, activePath: "/ai" },
+  { label: "Ask Molthood Agent", href: `${SITE_URL}/askmoltagent`, activePath: "/askmoltagent" },
   { label: "Console", href: CONSOLE_URL },
+  { label: "Dashboard", href: DASHBOARD_URL },
   { label: "Docs", href: DOCS_URL },
-  { label: "Developers", href: DASHBOARD_URL },
-  { label: "API", href: `${DOCS_URL}/api` },
+  { label: "API reference", href: `${DOCS_URL}/api` },
+  { label: "Roadmap", href: `${DOCS_URL}/roadmap` },
+  { label: "GitHub", href: GITHUB_URL, external: true },
 ];

@@ -149,7 +149,7 @@ async function request(
         reason,
         detail:
           reason === "rate_limited"
-            ? "Molt AI's shared daily analysis allowance is spent. Nothing was checked."
+            ? "Molthood Agent's shared daily analysis allowance is spent. Nothing was checked."
             : `The Molthood API answered ${response.status}.`,
       };
     }

@@ -33,7 +33,7 @@ function ErrorState({ error, onRetry, className }: ErrorStateProps) {
       </span>
 
       <h3 className="mt-5 font-display text-[15px] font-bold text-foreground">
-        {error.isOffline ? "Backend not reachable" : error.message}
+        {error.isOffline ? "Service unavailable" : error.message}
       </h3>
 
       <p className="mt-2 max-w-md text-sm leading-relaxed font-medium text-muted">
@@ -82,7 +82,7 @@ function InlineError({ error, className }: InlineErrorProps) {
       />
       <div className="min-w-0">
         <p className="text-sm font-bold text-foreground">
-          {error.isOffline ? "Backend not reachable" : error.message}
+          {error.isOffline ? "Service unavailable" : error.message}
         </p>
         <p className="mt-1 text-sm leading-relaxed font-medium text-muted">
           {error.suggestedAction}

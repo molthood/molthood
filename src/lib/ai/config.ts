@@ -1,5 +1,5 @@
 /**
- * Molt AI provider configuration.
+ * Molthood Agent provider configuration.
  *
  * Read on the server only. `AI_API_KEY` deliberately has no `NEXT_PUBLIC_`
  * prefix: anything with that prefix is inlined into the JavaScript bundle and

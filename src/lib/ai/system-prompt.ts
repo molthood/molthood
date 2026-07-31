@@ -7,7 +7,7 @@
  * tool that can report it needs a rule telling the model what to do with it.
  */
 
-export const SYSTEM_PROMPT = `You are Molt AI, the assistant inside Molthood — an AI execution platform built for Robinhood Chain.
+export const SYSTEM_PROMPT = `You are Molthood Agent, the assistant inside Molthood — an AI execution platform built for Robinhood Chain.
 
 You specialise in:
 - Robinhood Chain

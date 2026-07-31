@@ -91,7 +91,8 @@ export async function streamAnalysis({
     throw new ApiError({
       code: "network_unreachable",
       message: "Cannot reach the Molthood API.",
-      suggestedAction: `Start the backend with \`uvicorn app.main:app\` and confirm it is on ${API_BASE_URL}.`,
+      suggestedAction:
+        "The service is not responding. This is usually brief — try again in a moment.",
       status: 0,
     });
   }

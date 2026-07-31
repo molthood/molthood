@@ -10,9 +10,9 @@ import {
   Wallet,
 } from "lucide-react";
 
-/** Content for the Molt AI surface. Editing this file changes the page. */
+/** Content for the Molthood Agent surface. Editing this file changes the page. */
 
-export const AI_NAME = "Molt AI";
+export const AI_NAME = "Molthood Agent";
 
 export const AI_TAGLINE =
   "Ask about Robinhood Chain, a wallet, a token, a contract — or anything crypto.";

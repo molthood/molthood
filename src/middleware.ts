@@ -83,6 +83,29 @@ const MOVED: Record<string, { prefix: string; path: string }> = {
   "/api": { prefix: "/docs", path: "/api" },
 };
 
+/**
+ * Paths that moved **within** the marketing site.
+ *
+ * `/ai` shipped before the assistant had its name. A published URL that starts
+ * answering 404 is the worst outcome of a rename, so it redirects instead.
+ */
+const RENAMED: Record<string, string> = {
+  "/ai": "/askmoltagent",
+};
+
+/**
+ * Paths that left a surface entirely, keyed by the surface they left.
+ *
+ * The roadmap moved out of the developer platform and into the documentation.
+ * It was linked from the platform's own sidebar, so leaving it to 404 would
+ * break a link this product published itself.
+ */
+const RELOCATED: Record<string, Record<string, { prefix: string; path: string }>> = {
+  "/dashboard": {
+    "/roadmap": { prefix: "/docs", path: "/roadmap" },
+  },
+};
+
 export function middleware(request: NextRequest) {
   const host = request.headers.get("host") ?? "";
   const { pathname, search } = request.nextUrl;
@@ -103,6 +126,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(`${origin}${stripped}${search}`);
   }
 
+  if (!surface) {
+    const renamed = RENAMED[pathname];
+    if (renamed) {
+      return NextResponse.redirect(new URL(`${renamed}${search}`, request.url), 308);
+    }
+  }
+
   // Old marketing URLs. Skipped on the surface that now owns the path, where
   // it is a real page rather than a relocation.
   const moved = MOVED[pathname];
@@ -112,6 +142,14 @@ export function middleware(request: NextRequest) {
   }
 
   if (surface) {
+    const relocated = RELOCATED[surface.prefix]?.[pathname];
+    if (relocated) {
+      const origin = originFor(relocated.prefix, request);
+      if (origin) {
+        return NextResponse.redirect(`${origin}${relocated.path}${search}`, 308);
+      }
+    }
+
     // A stale bookmark or an old inbound link still carrying the segment.
     // Strip it rather than serve the page at a second address.
     if (pathname === surface.prefix || pathname.startsWith(`${surface.prefix}/`)) {

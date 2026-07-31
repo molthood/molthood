@@ -215,7 +215,7 @@ function MoltAi() {
             <p className="text-muted mt-2 text-center text-[11px] font-medium">
               {chat.thinking
                 ? "Reasoning…"
-                : "Molt AI can be wrong. It states what it could not check rather than guessing."}
+                : "Molthood Agent can be wrong. It states what it could not check rather than guessing."}
             </p>
           </div>
         </div>

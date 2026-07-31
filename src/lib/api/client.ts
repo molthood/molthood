@@ -82,11 +82,15 @@ export class ApiError extends Error {
   }
 }
 
-function offlineError(detail: string): ApiError {
+function offlineError(): ApiError {
   return new ApiError({
     code: "network_unreachable",
     message: "Cannot reach the Molthood API.",
-    suggestedAction: `Start the backend with \`uvicorn app.main:app\` and confirm it is on ${API_BASE_URL}. (${detail})`,
+    // No local run instructions here. This string reaches a visitor of a
+    // hosted product, for whom `uvicorn app.main:app` is not an action — it is
+    // a leaked developer note that makes the product look unfinished.
+    suggestedAction:
+      "The service is not responding. This is usually brief — try again in a moment.",
     status: 0,
   });
 }
@@ -132,7 +136,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
         status: 0,
       });
     }
-    throw offlineError(error instanceof Error ? error.message : "unknown");
+    throw offlineError();
   } finally {
     clearTimeout(timer);
   }

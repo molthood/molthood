@@ -13,6 +13,9 @@ import {
 } from "@/config/docs";
 import Link from "next/link";
 
+import { DOCS_URL } from "@/config/site";
+import { pageMetadata } from "@/lib/seo";
+
 type Params = { slug: string[] };
 
 /**
@@ -28,9 +31,19 @@ export function generateStaticParams(): Params[] {
   ];
 }
 
-/** A category index: what this group covers, and every page in it. */
+/**
+ * A category index: what this group covers, and every page in it.
+ *
+ * Returns null for a category whose single page *is* the category — Roadmap
+ * and Molthood Agent are one page each, and an index listing one card is a
+ * click between a reader and the thing they asked for. Worse, that card linked
+ * to `/roadmap/`, a trailing-slash path that resolves to nothing.
+ */
 function categoryIndex(id: string) {
-  return docsCategories.find((category) => category.id === id) ?? null;
+  const category = docsCategories.find((entry) => entry.id === id) ?? null;
+  if (!category) return null;
+  if (category.pages.length === 1 && category.pages[0].slug === "") return null;
+  return category;
 }
 
 export async function generateMetadata({
@@ -43,17 +56,22 @@ export async function generateMetadata({
   if (slug.length === 1) {
     const category = categoryIndex(slug[0]);
     if (category) {
-      return { title: category.title, description: category.description };
+      return pageMetadata({
+        title: category.title,
+        description: category.description,
+        url: `${DOCS_URL}/${category.id}`,
+      });
     }
   }
 
   const found = findPage(slug);
   if (!found) return { title: "Not found" };
 
-  return {
+  return pageMetadata({
     title: found.page.title,
     description: found.page.description,
-  };
+    url: `${DOCS_URL}${found.href}`,
+  });
 }
 
 export default async function DocsPage({ params }: { params: Promise<Params> }) {
@@ -75,7 +93,9 @@ export default async function DocsPage({ params }: { params: Promise<Params> }) 
               {category.pages.map((entry) => (
                 <li key={entry.slug}>
                   <Link
-                    href={`/${category.id}/${entry.slug}`}
+                    href={
+                      entry.slug ? `/${category.id}/${entry.slug}` : `/${category.id}`
+                    }
                     className="flex h-full flex-col rounded-card border border-border bg-surface-raised px-4 py-3 transition-colors hover:border-border-strong"
                   >
                     <span className="text-sm font-bold text-foreground">{entry.title}</span>

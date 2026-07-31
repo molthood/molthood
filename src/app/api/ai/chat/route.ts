@@ -1,5 +1,5 @@
 /**
- * Molt AI — the only place that holds the provider key.
+ * Molthood Agent — the only place that holds the provider key.
  *
  * The browser posts a conversation here and reads back a stream of
  * newline-delimited JSON events. Newline-delimited rather than SSE because
@@ -208,13 +208,13 @@ function friendlyError(error: unknown): { message: string; retryable: boolean } 
     if (error.status === 401 || error.status === 403) {
       return {
         message:
-          "Molt AI is not authorised with the provider. The API key is missing or no longer valid.",
+          "Molthood Agent is not authorised with the provider. The API key is missing or no longer valid.",
         retryable: false,
       };
     }
     if (error.status === 429) {
       return {
-        message: "Molt AI is rate limited right now. Waiting a moment usually clears it.",
+        message: "Molthood Agent is rate limited right now. Waiting a moment usually clears it.",
         retryable: true,
       };
     }
@@ -232,7 +232,7 @@ function friendlyError(error: unknown): { message: string; retryable: boolean } 
   }
 
   return {
-    message: "Molt AI could not be reached. Check your connection and try again.",
+    message: "Molthood Agent could not be reached. Check your connection and try again.",
     retryable: true,
   };
 }
@@ -242,7 +242,7 @@ export async function POST(request: Request) {
     return Response.json(
       {
         error:
-          "Molt AI is not configured on this deployment. Set AI_API_KEY to enable it.",
+          "Molthood Agent is not configured on this deployment. Set AI_API_KEY to enable it.",
         code: "not_configured",
         retryable: false,
       },

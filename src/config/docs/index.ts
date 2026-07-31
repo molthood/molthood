@@ -1,8 +1,14 @@
+import { about } from "@/config/docs/about";
+import { agentDocs } from "@/config/docs/agent";
 import { apiReference } from "@/config/docs/api";
 import { concepts } from "@/config/docs/concepts";
+import { enginePages } from "@/config/docs/engines";
 import { faq } from "@/config/docs/faq";
 import { gettingStarted } from "@/config/docs/getting-started";
 import { guides } from "@/config/docs/guides";
+import { platform } from "@/config/docs/platform";
+import { practicePages } from "@/config/docs/practice";
+import { roadmapDocs } from "@/config/docs/roadmap";
 import type { Block, DocCategory, DocPage } from "@/config/docs/types";
 
 export type { Block, DocCategory, DocPage };
@@ -16,10 +22,16 @@ export type { Block, DocCategory, DocPage };
  * which is what stops the navigation and the content drifting apart.
  */
 export const docsCategories: DocCategory[] = [
-  gettingStarted,
-  concepts,
+  about,
+  { ...gettingStarted, pages: [...gettingStarted.pages, ...practicePages] },
+  agentDocs,
+  // The four engines sit beside evidence and the execution model rather than
+  // in a section of their own: none of them means anything without those two.
+  { ...concepts, pages: [...concepts.pages, ...enginePages] },
   guides,
+  platform,
   apiReference,
+  roadmapDocs,
   faq,
 ];
 
@@ -35,7 +47,10 @@ export const docsPages: ResolvedPage[] = docsCategories.flatMap((category) =>
   category.pages.map((page) => ({
     page,
     category,
-    href: `/${category.id}/${page.slug}`,
+    // An empty slug means the category *is* the page — `/roadmap`, not
+    // `/roadmap/`. Without the trim the trailing slash reaches the router as a
+    // separate path that resolves to nothing.
+    href: page.slug ? `/${category.id}/${page.slug}` : `/${category.id}`,
   })),
 );
 
