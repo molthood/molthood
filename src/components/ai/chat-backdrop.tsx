@@ -100,7 +100,7 @@ function ChatBackdrop() {
           // page inside it, so "the request succeeded" is not evidence that a
           // video arrived.
           onError={() => setSource(null)}
-          className="absolute inset-0 size-full object-cover opacity-[0.22] transition-opacity duration-700 ease-out will-change-[opacity]"
+          className="absolute inset-0 size-full object-cover opacity-[0.55] transition-opacity duration-700 ease-out will-change-[opacity]"
           style={{
             opacity: ready ? undefined : 0,
             // Promotes the video to its own compositor layer, so its frames
@@ -113,14 +113,14 @@ function ChatBackdrop() {
       {/* Contrast floor. Applied whether or not a video is playing, so the
           surface looks identical before the asset loads and under reduced
           motion — there is no "unstyled" state to flash through. */}
-      <div className="absolute inset-0 bg-black/55" />
+      <div className="absolute inset-0 bg-black/30" />
 
       {/* Darkest through the middle, where the messages are. */}
       <div
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 68% 78% at 50% 50%, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.62) 55%, rgba(0,0,0,0.34) 100%)",
+            "radial-gradient(ellipse 62% 72% at 50% 48%, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.55) 48%, rgba(0,0,0,0.12) 100%)",
         }}
       />
     </div>
