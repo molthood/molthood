@@ -300,6 +300,11 @@ function summariseExecution(data: unknown): unknown {
     // Per-stage outcomes. A skipped or failed stage is the case the model most
     // needs to see, so it is carried even when everything succeeded.
     stages: record.stages,
+    // The named units of work — `market_analysis`, `risk_analysis` — and their
+    // outcomes. Dropped from the first version of this summary, which quietly
+    // disabled the half of the timeline that reports what actually ran: the
+    // plan was shown, nothing replaced it, and every analysis looked identical.
+    tasks: record.tasks,
     error: record.error,
   };
 }
