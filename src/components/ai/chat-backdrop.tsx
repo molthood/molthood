@@ -94,6 +94,12 @@ function ChatBackdrop() {
           playsInline
           preload="metadata"
           onLoadedData={() => setReady(true)}
+          // A missing or unplayable file drops the element rather than leaving
+          // an invisible one in the tree retrying. Worth being explicit about:
+          // a range request for an absent file returns 206 with the HTML 404
+          // page inside it, so "the request succeeded" is not evidence that a
+          // video arrived.
+          onError={() => setSource(null)}
           className="absolute inset-0 size-full object-cover opacity-[0.22] transition-opacity duration-700 ease-out will-change-[opacity]"
           style={{
             opacity: ready ? undefined : 0,
