@@ -1,70 +1,140 @@
-# Molthood
+<div align="center">
 
-AI execution agents for **Robinhood Chain**.
-One request. Multiple agents. Zero manual work.
+![Molthood](.github/banner.png)
 
-> **Phase 1 — Foundation & Premium Landing.**
-> This repository currently contains the frontend foundation only. There is no AI,
-> backend, database, API integration, or authentication yet.
+**An AI execution platform for Robinhood Chain.**
 
-## Getting started
+You describe a subject — a token, a wallet, a contract, a website — and agents
+gather evidence about it from independent sources, then report what they found
+*and what they could not check*.
 
-```bash
-npm install
-npm run dev
+[molthood.org](https://molthood.org) ·
+[Ask Molthood Agent](https://molthood.org/askmoltagent) ·
+[Console](https://console.molthood.org) ·
+[Documentation](https://docs.molthood.org) ·
+[Roadmap](https://docs.molthood.org/roadmap)
+
+</div>
+
+---
+
+## The rule everything is built around
+
+Most on-chain tooling will tell you a token is safe. Almost none of it
+distinguishes between **checked and clean** and **not checked at all** — and
+those two produce identical-looking green ticks.
+
+That is not a small omission. It inverts the meaning of the result. A scanner
+that could not reach the contract source, could not read the liquidity and
+could not resolve ownership will happily show a page with no warnings on it,
+and no warnings reads as good news.
+
+> **A check that could not run must never render as a check that came back
+> clean.**
+
+Every finding is `confirmed`, `refuted`, or `unknown`. There is no fourth
+state, and `unknown` is never rounded down to nothing. A risk score computed
+while a check was unavailable is reported as a **ceiling** rather than a
+number. A comparison with nothing to compare against returns nothing rather
+than "no changes". A surface with no live source says so instead of showing a
+plausible placeholder.
+
+## What is here
+
+| Surface | What it is | Where |
+| --- | --- | --- |
+| **Molthood Agent** | Conversational access to the whole engine. Routes its own tools, cites its sources, generates files. | [molthood.org/askmoltagent](https://molthood.org/askmoltagent) |
+| **Console** | Run an analysis, watch it stream, compare subjects, keep a history. | [console.molthood.org](https://console.molthood.org) |
+| **Documentation** | Architecture, concepts, guides, API reference, roadmap. | [docs.molthood.org](https://docs.molthood.org) |
+| **Developer platform** | Keys, public API, SDK, CLI, webhooks. *Under development.* | [status](https://docs.molthood.org/platform/dashboard) |
+
+## Repository layout
+
+Two applications, one repository.
+
+```
+.
+├── src/                  Next.js 15 — marketing site, docs, console, agent
+│   ├── app/              App Router; one app serves four hosts
+│   ├── components/       ui · layout · console · marketing · ai · docs
+│   ├── config/           content as data — docs, roadmap, agents, models
+│   └── lib/ai/           the agent: intent, tools, providers, artifacts
+└── backend/              FastAPI — the analysis engine
+    └── app/
+        ├── agents/       market · risk · research · portfolio
+        ├── engine/       pipeline, evidence, scoring, change detection
+        ├── providers/    interchangeable capabilities behind one router
+        └── services/     named dependencies (explorer, node, screening)
 ```
 
-The app runs at [http://localhost:3000](http://localhost:3000).
+Both apps have a guide written to be read *before* changing anything:
+[`AGENTS.md`](AGENTS.md) for the frontend and the shared rules,
+[`backend/README.md`](backend/README.md) for the engine. They explain why
+things are the way they are, rather than restating what the code already says.
 
-## Routes
+## Running it
 
-| Route      | Description                                            |
-| ---------- | ------------------------------------------------------ |
-| `/`        | Landing page — hero, execution model, pipeline, agents |
-| `/console` | Application shell with sidebar and topbar              |
-| `/docs`    | Documentation homepage                                 |
-| `/api`     | API platform homepage                                  |
+```bash
+# engine — http://127.0.0.1:8000
+cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload
 
-Console sub-routes: `/console/agents`, `/console/projects`, `/console/executions`,
-`/console/reports`, `/console/history`, `/console/settings`.
+# web — http://localhost:3000
+npm install && npm run dev
+```
 
-## Scripts
+`NEXT_PUBLIC_API_URL` in `.env.local` points the web app at the engine. Copy
+[`.env.example`](.env.example) and
+[`backend/.env.example`](backend/.env.example) to start.
 
-| Script              | Purpose                    |
-| ------------------- | -------------------------- |
-| `npm run dev`       | Development server         |
-| `npm run build`     | Production build           |
-| `npm run start`     | Serve the production build |
-| `npm run typecheck` | `tsc --noEmit`             |
-| `npm run lint`      | ESLint                     |
+**The application is fully functional with zero credentials.** It starts,
+`/api/health` names every variable that would enable something, and the router
+routes around whatever is absent. Adding a key and restarting is the only
+enablement step — there is no code path that a new key switches on.
 
-## Design tokens
+## Commands
 
-Defined once in [`src/app/globals.css`](src/app/globals.css) and consumed as
-Tailwind utilities.
+| | Frontend | Backend |
+| --- | --- | --- |
+| Develop | `npm run dev` | `uvicorn app.main:app --reload` |
+| Types | `npm run typecheck` | `mypy app` |
+| Lint | `npm run lint` | `ruff check app tests` |
+| Format | — | `ruff format app tests` |
+| Test | — | `pytest` |
+| Build | `npm run build` | — |
 
-The theme is a full electric-lime field with heavy black type. On a lime field
-the accent *is* the ink, so `primary` resolves to black — buttons, indicators,
-and icons all render dark against the green.
+CI runs all of it on every push and pull request. Both hosts deploy from `main`
+automatically, so a red gate is the only thing standing between a bad commit
+and production.
 
-| Token          | Value     | Role                      |
-| -------------- | --------- | ------------------------- |
-| Background     | `#BDF83C` | Electric lime — the field |
-| Surface        | `#AEEB2E` | Recessed panels, cards    |
-| Surface raised | `#CBFF5B` | Hover / raised state      |
-| Border         | `#93CE1F` | Hairlines                 |
-| Border strong  | `#79AD12` | Hover hairlines           |
-| Text           | `#08120D` | Black                     |
-| Muted          | `#17200B` | Secondary text            |
-| Primary        | `#08120D` | CTAs and accents (black)  |
-| Danger         | `#6B0D0D` | Validation errors         |
+## Stack
 
-Changing the field is a one-line edit: `--color-background` in
-[`src/app/globals.css`](src/app/globals.css).
+**Frontend** — Next.js 15 (App Router) · TypeScript (strict) · Tailwind CSS v4
+· Framer Motion · Zod
 
-Type is weighted up across the board: body copy sits at 500, headings at 700,
-and no text renders below 500 anywhere on the field.
+**Backend** — FastAPI · Pydantic v2 · SQLAlchemy 2 · structlog · httpx ·
+PostgreSQL
 
-Typography: **Geist** for headings, **Inter** for body, **JetBrains Mono** for code.
+**Agent** — multi-provider routing across Anthropic, OpenAI, Google and
+DeepSeek. A model declares an ordered list of routes and the first healthy one
+answers, so a provider running out of quota costs you that provider rather than
+the conversation.
 
-See [AGENTS.md](AGENTS.md) for architecture conventions.
+## Contributing
+
+[`CONTRIBUTING.md`](CONTRIBUTING.md) covers the workflow. The short version:
+read the guide for the area you are touching, keep the evidence model intact,
+and add a test for anything that could silently become wrong.
+
+Security issues go to [`SECURITY.md`](SECURITY.md) — privately, please, rather
+than as a public issue.
+
+## License
+
+[Apache 2.0](LICENSE). Use it, change it, ship it — keep the notice, state what
+you changed, and the patent grant travels with the code.
+
+---
+
+<div align="center">
+<sub>Built for Robinhood Chain.</sub>
+</div>
