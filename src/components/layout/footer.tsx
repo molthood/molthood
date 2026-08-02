@@ -28,7 +28,7 @@ function Footer() {
                     href={item.href}
                     target={item.external ? "_blank" : undefined}
                     rel={item.external ? "noreferrer noopener" : undefined}
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-muted transition-colors hover:text-foreground"
+                    className="-mx-1 inline-flex min-h-11 items-center gap-1 px-1 text-sm font-semibold text-muted transition-colors hover:text-foreground sm:min-h-0"
                   >
                     {item.label}
                     {item.external ? (

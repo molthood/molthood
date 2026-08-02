@@ -70,14 +70,30 @@ function Preview({ artifact }: { artifact: Artifact }) {
   const kind = previewKind(artifact);
 
   if (kind === "svg") {
+    // Loaded through `<img>`, never injected into the document.
+    //
+    // The previous version used `dangerouslySetInnerHTML`. `<script>` does not
+    // execute through `innerHTML`, which is what made it look safe — but event
+    // handlers do, and `<image href="x" onerror="…">` fires. Verified: both
+    // that and a `foreignObject` image handler ran. Since the SVG is written
+    // by a model that reads attacker-controlled text (a token name, a webpage
+    // it was asked to research), that is a path from a hostile listing to
+    // arbitrary script on this origin — with every stored conversation in
+    // `localStorage` behind it.
+    //
+    // An `<img>` renders SVG in the spec's secure static mode: no scripting,
+    // no external references, no same-origin access. The browser enforces it,
+    // so there is no sanitiser to keep current.
+    const source = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(artifact.content)}`;
     return (
-      <div
-        className="bg-surface flex items-center justify-center rounded-lg p-4 [&_svg]:max-h-[60vh] [&_svg]:max-w-full"
-        // The model wrote this markup and it is rendered here rather than
-        // downloaded blind. Same-origin and sandboxed by the page's own policy,
-        // which blocks external fetches from anything this could contain.
-        dangerouslySetInnerHTML={{ __html: artifact.content }}
-      />
+      <div className="bg-surface flex items-center justify-center rounded-lg p-4">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={source}
+          alt={artifact.filename}
+          className="max-h-[60vh] max-w-full object-contain"
+        />
+      </div>
     );
   }
 
@@ -187,9 +203,11 @@ function ArtifactWorkspace({ artifact, onClose, onRegenerate }: ArtifactWorkspac
     setTimeout(() => URL.revokeObjectURL(url), 60_000);
   };
 
-  const viewable = ["pdf", "html", "svg", "txt", "md", "json", "csv"].includes(
-    artifact.format,
-  );
+  // `html` and `svg` are excluded deliberately. Opening either as a blob gives
+  // model-written markup a real browsing context, and the preview above
+  // already shows them safely — there is nothing to gain and a script engine
+  // to lose.
+  const viewable = ["pdf", "txt", "md", "json", "csv"].includes(artifact.format);
 
   return (
     <div className="fixed inset-0 z-[70] flex" role="dialog" aria-modal="true">

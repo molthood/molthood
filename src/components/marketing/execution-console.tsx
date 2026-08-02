@@ -182,7 +182,7 @@ function ExecutionConsole() {
             onClick={() => setReplay((value) => value + 1)}
             aria-label="Replay the execution log"
             title="Replay"
-            className="inline-flex size-6 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface hover:text-foreground"
+            className="-m-2 inline-flex size-10 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface hover:text-foreground sm:m-0 sm:size-8"
           >
             <RotateCw
               className={cn("size-3.5", streaming && "animate-spin")}

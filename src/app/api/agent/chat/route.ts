@@ -23,6 +23,7 @@ import {
   type RoundResult,
 } from "@/lib/ai/providers/stream";
 import { detectIntent, effectiveIntent, lastSubject } from "@/lib/ai/intent";
+import { checkLimit } from "@/lib/ai/rate-limit";
 import {
   actionsFor,
   cardsFor,
@@ -113,6 +114,26 @@ export async function POST(request: Request) {
     );
   }
 
+  // Before anything is parsed or spent. An unauthenticated endpoint that costs
+  // money per call needs this ahead of the work, not after it.
+  const limit = await checkLimit(request);
+  if (!limit.allowed) {
+    return Response.json(
+      {
+        error:
+          limit.reason === "global"
+            ? "Molthood Agent has reached today's shared limit. It resets at midnight UTC."
+            : "You are sending requests faster than Molthood Agent accepts them. Try again shortly.",
+        code: "rate_limited",
+        retryable: true,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(limit.retryAfterSeconds) },
+      },
+    );
+  }
+
   let body: { messages?: IncomingMessage[]; model?: unknown };
   try {
     body = await request.json();
@@ -120,12 +141,23 @@ export async function POST(request: Request) {
     return Response.json({ error: "Malformed request body.", code: "bad_request" }, { status: 400 });
   }
 
-  const incoming = (body.messages ?? [])
+  if (!Array.isArray(body.messages)) {
+    return Response.json(
+      { error: "Malformed request body.", code: "bad_request" },
+      { status: 400 },
+    );
+  }
+
+  const incoming = body.messages
     .filter(
       (message): message is IncomingMessage =>
         !!message &&
         (message.role === "user" || message.role === "assistant") &&
-        typeof message.content === "string",
+        typeof message.content === "string" &&
+        // A bounded message, because the body is public input and the cost of
+        // a request scales with it. Anything longer is a paste of a file, and
+        // there is a file-upload story for that rather than a 2MB turn.
+        message.content.length <= 24_000,
     )
     // Long conversations are supported by carrying the tail rather than the
     // whole history: a context window is finite, and the alternative is a

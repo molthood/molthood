@@ -46,7 +46,7 @@ function ConsoleSidebar({ className, ...props }: ConsoleSidebarProps) {
         <div className="rounded-lg border border-border bg-surface-raised px-3 py-2.5">
           <p className="truncate text-xs font-bold text-foreground">{workspace.name}</p>
           <p className="mt-1 truncate font-mono text-[10px] font-bold text-muted">
-            {workspace.plan}
+            No account required
           </p>
         </div>
       </div>

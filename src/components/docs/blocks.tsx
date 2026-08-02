@@ -50,7 +50,7 @@ function DocBlock({ block }: { block: Block }) {
         >
           {/* The anchor is the heading itself: a hover-only link icon is
               invisible on touch, where deep links get shared most. */}
-          <a href={`#${block.id}`} className="hover:text-primary">
+          <a href={`#${block.id}`} className="-my-1 inline-block py-1 hover:text-primary">
             {block.content}
           </a>
         </h2>
