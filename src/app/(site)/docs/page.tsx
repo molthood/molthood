@@ -4,12 +4,15 @@ import { ArrowRight } from "lucide-react";
 
 import { DocsShell } from "@/components/docs/docs-shell";
 import { docsCategories, docsPages } from "@/config/docs";
-import { siteConfig } from "@/config/site";
+import { DOCS_URL, siteConfig } from "@/config/site";
+import { OG_DOCS, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageMetadata({
   title: "Documentation",
   description: `How Molthood analyses ${siteConfig.chain}: concepts, guides, and the full API reference.`,
-};
+  url: DOCS_URL,
+  image: OG_DOCS,
+});
 
 export default function DocsHome() {
   return (

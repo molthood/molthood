@@ -12,6 +12,7 @@ import { LiveSection } from "@/components/marketing/live-section";
 import { PipelineSection } from "@/components/marketing/pipeline-section";
 import { SecuritySection } from "@/components/marketing/security-section";
 import { siteConfig } from "@/config/site";
+import { OG_BRAND } from "@/lib/seo";
 
 export const metadata: Metadata = {
   // The landing page is the canonical root, so it declares itself rather than
@@ -24,11 +25,13 @@ export const metadata: Metadata = {
     url: siteConfig.url,
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
-    // Declared rather than left to the file convention. A page that supplies
-    // its own `openGraph` object replaces the inherited one wholesale, so the
-    // generated image was being dropped exactly where it matters most — the
-    // link people actually share.
-    images: [{ url: "/opengraph-image.png", width: 1200, height: 630 }],
+    // Declared rather than inherited. A page that supplies its own `openGraph`
+    // object replaces the inherited one wholesale, so leaving this out drops
+    // the card exactly where it matters most — the link people actually share.
+    // It was dropped once, by removing this line, on this page.
+    images: [
+      { url: OG_BRAND, width: 1200, height: 630, alt: siteConfig.name },
+    ],
   },
 };
 

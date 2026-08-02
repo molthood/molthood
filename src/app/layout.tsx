@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     "onchain automation",
   ],
   openGraph: {
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: siteConfig.name }],
     type: "website",
     url: siteConfig.url,
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
@@ -29,6 +30,7 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
   },
   twitter: {
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: siteConfig.name }],
     site: X_HANDLE,
     creator: X_HANDLE,
     card: "summary_large_image",

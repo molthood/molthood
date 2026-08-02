@@ -14,7 +14,7 @@ import {
 import Link from "next/link";
 
 import { DOCS_URL } from "@/config/site";
-import { pageMetadata } from "@/lib/seo";
+import { OG_DOCS, pageMetadata } from "@/lib/seo";
 
 type Params = { slug: string[] };
 
@@ -60,6 +60,7 @@ export async function generateMetadata({
         title: category.title,
         description: category.description,
         url: `${DOCS_URL}/${category.id}`,
+        image: OG_DOCS,
       });
     }
   }
@@ -71,6 +72,7 @@ export async function generateMetadata({
     title: found.page.title,
     description: found.page.description,
     url: `${DOCS_URL}${found.href}`,
+    image: OG_DOCS,
   });
 }
 

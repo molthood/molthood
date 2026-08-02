@@ -53,3 +53,8 @@ next-env.d.ts
 
 # Scratch copies made while bisecting a deploy problem.
 *.bak
+
+# Assistant entrypoint. It contains one line — a pointer at AGENTS.md, which is
+# the real guide — so it is a local convenience rather than part of the
+# project. Kept on disk, out of the repository.
+CLAUDE.md
