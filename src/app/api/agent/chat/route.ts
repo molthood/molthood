@@ -44,6 +44,19 @@ export const runtime = "nodejs";
 /** Never cached, and never statically evaluated at build time. */
 export const dynamic = "force-dynamic";
 
+/**
+ * Text a round emits before calling a tool is announcement — "I'll look up the
+ * roadmap now" — and asking the model not to write it only works about a third
+ * of the time. So it is held instead of streamed, and thrown away if tool
+ * calls follow.
+ *
+ * The buffer is small on purpose: a real answer passes this within a few
+ * tokens and flushes, so nothing perceptible is delayed. Only the short
+ * sentence that precedes a tool call is ever withheld, and only until it is
+ * known to be one.
+ */
+const PREAMBLE_LIMIT = 200;
+
 /** How many times the model may call tools before it must answer. */
 const MAX_TOOL_ROUNDS = 3;
 
@@ -171,6 +184,15 @@ export async function POST(request: Request) {
 
         for (const route of routes) {
           let produced = false;
+          let held = "";
+          let holding = allowTools;
+
+          const flush = () => {
+            if (!held) return;
+            controller.enqueue(event({ type: "delta", text: held }));
+            held = "";
+          };
+
           try {
             const result = await streamRound({
               route,
@@ -179,6 +201,15 @@ export async function POST(request: Request) {
               signal: request.signal,
               handlers: {
                 onText: (chunk) => {
+                  if (holding) {
+                    held += chunk;
+                    if (held.length < PREAMBLE_LIMIT) return;
+                    // Long enough to be the answer itself, not a preamble.
+                    holding = false;
+                    produced = true;
+                    flush();
+                    return;
+                  }
                   produced = true;
                   controller.enqueue(event({ type: "delta", text: chunk }));
                 },
@@ -189,6 +220,14 @@ export async function POST(request: Request) {
               },
             });
             reportSuccess(route.provider);
+            // Held text survives only when the round turned out to be the
+            // answer. If tool calls came back, it was an announcement.
+            if (result.toolCalls.length === 0) {
+              holding = false;
+              flush();
+            } else {
+              held = "";
+            }
             return result;
           } catch (error) {
             if (error instanceof Error && error.name === "AbortError") throw error;
@@ -196,6 +235,8 @@ export async function POST(request: Request) {
             const detail =
               error instanceof ProviderError ? `http_${error.status}` : "unreachable";
             reportFailure(route.provider, detail);
+            // Anything held for a route that failed belongs to that attempt.
+            held = "";
             if (produced) throw error;
           }
         }
