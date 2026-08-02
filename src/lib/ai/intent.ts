@@ -28,6 +28,14 @@ export type Intent =
 
 export type Detection = {
   intent: Intent;
+  /**
+   * The message mentions Molthood, whatever intent won.
+   *
+   * "Put the Molthood roadmap in a markdown file" classifies as a file
+   * request — correctly, it is one — and the file still has to be written from
+   * the documentation rather than from memory.
+   */
+  aboutMolthood?: boolean;
   /** The thing being asked about, in the form a tool needs. */
   subject?: string;
   /** Shown in the timeline. Plain language, never a code. */
@@ -65,35 +73,39 @@ const CHAIN =
 
 export function detectIntent(text: string): Detection {
   const message = text.trim();
+  const aboutMolthood = MOLTHOOD.test(message);
+
+  const tag = (detection: Detection): Detection =>
+    aboutMolthood ? { ...detection, aboutMolthood } : detection;
 
   // Thread requests win over everything: "write an X thread about 0x…" is a
   // writing task that happens to mention an address, and routing it as an
   // address analysis answers a question nobody asked.
   if (THREAD.test(message)) {
-    return { intent: "thread", label: "Recognised a thread request" };
+    return tag({ intent: "thread", label: "Recognised a thread request" });
   }
 
   if (ARTIFACT.test(message)) {
-    return { intent: "artifact", label: "Recognised a file request" };
+    return tag({ intent: "artifact", label: "Recognised a file request" });
   }
 
   if (MOLTHOOD.test(message)) {
-    return { intent: "molthood", label: "Searching Molthood's documentation" };
+    return tag({ intent: "molthood", label: "Searching Molthood's documentation" });
   }
 
   const tx = message.match(TX_HASH);
   if (tx) {
-    return { intent: "transaction", subject: tx[0], label: "Recognised a transaction hash" };
+    return tag({ intent: "transaction", subject: tx[0], label: "Recognised a transaction hash" });
   }
 
   const address = message.match(ADDRESS);
   if (address) {
-    return { intent: "address", subject: address[0], label: "Recognised an address" };
+    return tag({ intent: "address", subject: address[0], label: "Recognised an address" });
   }
 
   const repo = message.match(GITHUB);
   if (repo) {
-    return { intent: "repository", subject: repo[1], label: "Recognised a repository" };
+    return tag({ intent: "repository", subject: repo[1], label: "Recognised a repository" });
   }
 
   const profile = message.match(X_PROFILE);
@@ -107,7 +119,7 @@ export function detectIntent(text: string): Detection {
 
   const handle = message.match(HANDLE);
   if (handle) {
-    return { intent: "social", subject: handle[1], label: "Recognised a social account" };
+    return tag({ intent: "social", subject: handle[1], label: "Recognised a social account" });
   }
 
   const url = message.match(URL);
@@ -116,12 +128,12 @@ export function detectIntent(text: string): Detection {
     // a.co" is not a research request, and neither is a version like `1.2.3`.
     const value = url[0];
     if (!/^\d+(\.\d+)+$/.test(value)) {
-      return { intent: "website", subject: value, label: "Recognised a website" };
+      return tag({ intent: "website", subject: value, label: "Recognised a website" });
     }
   }
 
   if (CHAIN.test(message)) {
-    return { intent: "chain", label: "Recognised a chain question" };
+    return tag({ intent: "chain", label: "Recognised a chain question" });
   }
 
   // Explicit research verbs only. "What is impermanent loss?" and "tell me
@@ -132,10 +144,10 @@ export function detectIntent(text: string): Detection {
     /\b(research|analy[sz]e|due\s+diligence|look\s+(this|it)\s+up)\b/i.test(message) ||
     /\bis\s+\S+\s+(legit|legitimate|a\s+scam|safe|trustworthy)\b/i.test(message)
   ) {
-    return { intent: "project", label: "Recognised a research request" };
+    return tag({ intent: "project", label: "Recognised a research request" });
   }
 
-  return { intent: "general", label: "Understood the request" };
+  return tag({ intent: "general", label: "Understood the request" });
 }
 
 /**

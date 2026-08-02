@@ -22,6 +22,8 @@ export type KnowledgeHit = {
   section: string;
   url: string;
   excerpt: string;
+  /** False when the page was longer than the budget allowed. */
+  complete: boolean;
 };
 
 /** Blocks flattened to searchable prose. */
@@ -114,6 +116,17 @@ function terms(query: string): string[] {
  * forty documents — and a wrong ranking here costs a slightly less relevant
  * excerpt, not a wrong answer, because the model reads what it is given.
  */
+/**
+ * How much of a page each hit may carry, and how much all of them may.
+ *
+ * The first version capped an excerpt at 2,400 characters. The roadmap
+ * document is 4,769 — so the agent received exactly half of it, noticed the
+ * text stopped mid-entry, and hedged about the parts it could not see. It was
+ * behaving correctly on incomplete input; the input was the bug.
+ */
+const PER_HIT = 9_000;
+const TOTAL = 22_000;
+
 export function searchKnowledge(query: string, limit = 4): KnowledgeHit[] {
   const words = terms(query);
   if (words.length === 0) return [];
@@ -132,16 +145,30 @@ export function searchKnowledge(query: string, limit = 4): KnowledgeHit[] {
     return { document, score };
   });
 
-  return scored
+  const ranked = scored
     .filter((entry) => entry.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, limit)
-    .map(({ document }) => ({
+    .slice(0, limit);
+
+  // Budgeted best-first, so the most relevant page arrives whole even if that
+  // means the fourth one is dropped. A complete answer from one page beats
+  // four halves.
+  let spent = 0;
+  const hits: KnowledgeHit[] = [];
+
+  for (const { document } of ranked) {
+    if (spent >= TOTAL) break;
+    const excerpt = document.body.slice(0, Math.min(PER_HIT, TOTAL - spent));
+    spent += excerpt.length;
+    hits.push({
       title: document.title,
       section: document.section,
       url: document.url,
-      // Generous: the model needs the substance, and these documents are the
-      // one source it is not allowed to paraphrase from memory.
-      excerpt: document.body.slice(0, 2400),
-    }));
+      excerpt,
+      /** Tells the model whether it is reading all of a page or part of one. */
+      complete: excerpt.length === document.body.length,
+    });
+  }
+
+  return hits;
 }
