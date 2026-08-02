@@ -285,3 +285,13 @@ visitor**, so its daily allowance is consumed collectively; when it runs out
 the tool reports `rate_limited` rather than failing silently. And every
 analysis it runs is recorded against that key, so the wallets and tokens
 strangers ask about all land in one execution history.
+
+## Reopening the developer platform
+
+`dashboard.molthood.org` serves a status page rather than the platform. Nothing
+was deleted — the gate is one check on `src/app/dashboard/layout.tsx`, so every
+page below it still exists and still type-checks with the rest of the product.
+
+To reopen it, set `DASHBOARD_ENABLED=true` in Vercel and redeploy. Then put
+`Dashboard` back in `mainNav` in `src/config/site.ts`, and update the status
+note on the [developer platform docs page](https://docs.molthood.org/platform/dashboard).

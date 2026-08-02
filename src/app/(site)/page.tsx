@@ -7,6 +7,7 @@ import { ExecutionFirst } from "@/components/marketing/execution-first";
 import { FaqSection } from "@/components/marketing/faq-section";
 import { FinalCta } from "@/components/marketing/final-cta";
 import { Hero } from "@/components/marketing/hero";
+import { AgentSection } from "@/components/marketing/agent-section";
 import { LiveSection } from "@/components/marketing/live-section";
 import { PipelineSection } from "@/components/marketing/pipeline-section";
 import { SecuritySection } from "@/components/marketing/security-section";
@@ -40,6 +41,7 @@ export default function LandingPage() {
     <>
       <Hero />
       <LiveSection />
+      <AgentSection />
       <ExecutionFirst />
       <PipelineSection />
       <AgentsSection />

@@ -167,19 +167,117 @@ export const agentDocs: DocCategory = {
             "A ticker is ambiguous and several tokens can share one. An address is not. If you have it, paste it — the Agent will search by ticker otherwise and tell you what it found.",
         },
 
-        { kind: "heading", id: "choosing-a-model", content: "Choosing a model" },
+        { kind: "heading", id: "models", content: "Models" },
         {
           kind: "text",
           content:
-            "A selector under the composer switches between available models, and your choice is remembered. Reasoning models think before answering and are worth the wait on analysis; direct models are faster and better suited to writing and code.",
+            "One Agent, several models. The selector under the composer switches between them and your choice is remembered. Only models that can actually answer are listed.",
+        },
+        {
+          kind: "table",
+          head: ["Model", "Provider", "Best for"],
+          rows: [
+            ["Claude Opus 5 Thinking", "Anthropic", "Deep crypto research"],
+            ["Claude Sonnet 5", "Anthropic", "Fast coding and daily conversations"],
+            ["GPT-5", "OpenAI", "General intelligence and coding"],
+            ["Gemini 2.5 Pro", "Google", "Long documents and multimodal reasoning"],
+            ["DeepSeek Reasoner", "DeepSeek", "Coding and reasoning at lower cost"],
+          ],
         },
         {
           kind: "text",
           content:
-            "The model can be changed at any point before you send a message. It is locked while an answer is streaming, so the label always names the model that produced the text on screen.",
+            "The model can be changed at any point before you send a message. It is locked while an answer streams, so the label always names the model that produced the text on screen.",
         },
 
-        { kind: "heading", id: "conversations", content: "Conversations" },
+        {
+          kind: "heading",
+          id: "provider-routing",
+          content: "Automatic provider routing",
+        },
+        {
+          kind: "text",
+          content:
+            "You choose a **model**. Molthood chooses how to reach it. Each model has an ordered list of routes, and the first one that is answering serves the request.",
+        },
+        {
+          kind: "text",
+          content:
+            "This matters because providers fail in ordinary ways — a quota runs out, an account runs dry, a host has a bad afternoon. When that happens the next route answers and the conversation does not notice. You are never shown a provider error for something that had an alternative.",
+        },
+        {
+          kind: "callout",
+          tone: "note",
+          title: "One thing the fallback will not do",
+          content:
+            "Once an answer has started streaming, it will not restart elsewhere. Retrying mid-sentence would make the text contradict itself, which is worse than the failure it was avoiding.",
+        },
+        {
+          kind: "text",
+          content:
+            "A provider that fails is remembered as unhealthy, so the next request skips it rather than rediscovering the outage.",
+        },
+
+        { kind: "heading", id: "internal-knowledge", content: "Internal knowledge" },
+        {
+          kind: "text",
+          content:
+            "Ask about Molthood itself — what it does, what is shipped, what is planned, how it is built — and the answer comes from **this documentation**, not from the model's memory.",
+        },
+        {
+          kind: "text",
+          content:
+            "The corpus is the same data that renders these pages and the roadmap. Not a copy and not a summary, so a page cannot drift out of sync with itself. Ask what is coming next and you get what the roadmap actually says, including the reasoning behind each item.",
+        },
+        {
+          kind: "text",
+          content:
+            "If something is not in the documentation, the Agent says it is not part of Molthood rather than inventing a plausible feature. A confident description of a roadmap that does not exist is the one failure this product cannot afford.",
+        },
+
+        { kind: "heading", id: "artifacts", content: "Files and artifacts" },
+        {
+          kind: "text",
+          content:
+            "Ask for a document and you get a file rather than four thousand words in a chat bubble. Say \"export this as a PDF\", \"generate a CSV\", \"write a whitepaper\" — or just ask for something that is obviously a document, and one is produced.",
+        },
+        {
+          kind: "list",
+          items: [
+            "Markdown, plain text, JSON, CSV, HTML, SVG and Mermaid",
+            "PDF and Word, built from markdown",
+            "Excel, built from CSV",
+            "PowerPoint, one slide per section",
+          ],
+        },
+        {
+          kind: "text",
+          content:
+            "A file opens in a workspace rather than downloading immediately: preview it, edit it, copy it, open it in a tab, or download it. A file you have not read is one you cannot judge.",
+        },
+        {
+          kind: "callout",
+          tone: "warning",
+          content:
+            "The Agent will not invent data to fill a file. A spreadsheet of made-up figures is worse than a short one, because a spreadsheet reads as measured.",
+        },
+
+        { kind: "heading", id: "memory", content: "Conversation memory" },
+        {
+          kind: "text",
+          content:
+            "The Agent remembers the conversation, so a follow-up does not have to repeat itself. \"Compare it with BTC\", \"export that to PDF\", \"is it safe to hold overnight\" — the subject carries forward from earlier turns.",
+        },
+        {
+          kind: "text",
+          content:
+            "Memory survives a model change. Start on one model, switch to another mid-conversation, and the new one picks up with the subject and the history intact.",
+        },
+        {
+          kind: "text",
+          content:
+            "Start a clean conversation with **New chat** at any time. Previous conversations stay in the list and can be reopened or deleted.",
+        },
         {
           kind: "text",
           content:

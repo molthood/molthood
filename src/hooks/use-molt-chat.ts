@@ -71,7 +71,9 @@ function titleFrom(text: string): string {
 }
 
 function emptyConversation(): Conversation {
-  return { id: newId(), title: "New chat", messages: [], updatedAt: Date.now() };
+  // Not "New chat": that is the name of the button that creates one, and
+  // sharing it made a screen reader announce the same words three times.
+  return { id: newId(), title: "Untitled", messages: [], updatedAt: Date.now() };
 }
 
 function load(): { conversations: Conversation[]; activeId: string } {
@@ -101,8 +103,25 @@ export function useMoltChat() {
   const [activeId, setActiveId] = React.useState<string>("");
   const [streaming, setStreaming] = React.useState(false);
   const [thinking, setThinking] = React.useState(false);
-  /** What the agent is doing right now, in words. Replaces "Thinking…". */
-  const [phase, setPhase] = React.useState("");
+  /**
+   * What the agent is doing right now, in words.
+   *
+   * The server sends a *sequence* per phase and this walks it, so a long tool
+   * call reads as progress rather than as one frozen label. It stops on the
+   * last entry rather than looping: cycling back to the first step would
+   * suggest the work restarted.
+   */
+  const [phaseSteps, setPhaseSteps] = React.useState<string[]>([]);
+  const [phaseIndex, setPhaseIndex] = React.useState(0);
+  const phase = phaseSteps[Math.min(phaseIndex, phaseSteps.length - 1)] ?? "";
+
+  React.useEffect(() => {
+    if (phaseSteps.length < 2) return;
+    const timer = setInterval(() => {
+      setPhaseIndex((index) => Math.min(index + 1, phaseSteps.length - 1));
+    }, 2600);
+    return () => clearInterval(timer);
+  }, [phaseSteps]);
   const [models, setModels] = React.useState<ModelOption[]>([]);
   const [model, setModel] = React.useState("");
   const abortRef = React.useRef<AbortController | null>(null);
@@ -204,7 +223,8 @@ export function useMoltChat() {
       setStreaming(true);
       setThinking(false);
 
-      setPhase("");
+      setPhaseSteps([]);
+      setPhaseIndex(0);
       const replyId = newId();
       patchActive((conversation) => ({
         ...conversation,
@@ -273,7 +293,7 @@ export function useMoltChat() {
               reason?: string;
               cards?: AnalysisCard[];
               badges?: string[];
-              steps?: { id: string; label: string }[];
+              steps?: ({ id: string; label: string } | string)[];
               sources?: SourceRef[];
               actions?: SuggestedAction[];
               level?: Confidence["level"];
@@ -288,14 +308,18 @@ export function useMoltChat() {
               // Shown as pending immediately, then overwritten by real events.
               patchReply((message) => ({
                 ...message,
-                steps: payload.steps!.map((step) => ({ ...step, status: "pending" as const })),
+                steps: (payload.steps as { id: string; label: string }[]).map((step) => ({
+                  ...step,
+                  status: "pending" as const,
+                })),
               }));
-            } else if (payload.type === "phase" && payload.label) {
+            } else if (payload.type === "phase" && payload.steps) {
               setThinking(true);
-              setPhase(payload.label);
+              setPhaseSteps(payload.steps as string[]);
+              setPhaseIndex(0);
             } else if (payload.type === "delta" && payload.text) {
               setThinking(false);
-              setPhase("");
+              setPhaseSteps([]);
               patchReply((message) => ({
                 ...message,
                 content: message.content + payload.text,
@@ -369,7 +393,7 @@ export function useMoltChat() {
         abortRef.current = null;
         setStreaming(false);
         setThinking(false);
-        setPhase("");
+        setPhaseSteps([]);
         // Any planned step never reached is dropped rather than left hanging:
         // a greyed row after the answer arrives reads as something that failed.
         patchReply((message) => ({

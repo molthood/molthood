@@ -7,6 +7,96 @@ export const platform: DocCategory = {
   description: "Security, privacy, limits, and the words used throughout these docs.",
   pages: [
     {
+      slug: "dashboard",
+      title: "Developer platform",
+      description:
+        "What the developer platform will be, why it is not open yet, and what to use instead today.",
+      blocks: [
+        {
+          kind: "callout",
+          tone: "note",
+          title: "Currently under development",
+          content:
+            "The developer platform is not open to the public. Visiting it shows a status page rather than a half-built interface.",
+        },
+        {
+          kind: "text",
+          content:
+            "Molthood's analysis engine is live and usable today. What is not finished is the layer developers would use to reach it from their own code — credentials, a stable public API, and the tooling around both.",
+        },
+
+        { kind: "heading", id: "why-hidden", content: "Why it is hidden rather than shown" },
+        {
+          kind: "text",
+          content:
+            "An interface that does not work yet costs a visitor a click to discover, and every disabled button is a small claim that something exists. Showing the shape of a feature is useful; showing a shell of one is not.",
+        },
+        {
+          kind: "text",
+          content:
+            "Nothing has been deleted. Every page and component still exists in the codebase and still compiles with the rest of the product, so the platform is not rotting while it waits. It returns by configuration, not by being rebuilt.",
+        },
+
+        { kind: "heading", id: "what-it-will-include", content: "What it will include" },
+        {
+          kind: "definitions",
+          items: [
+            {
+              term: "API keys",
+              description:
+                "Scoped credentials with per-key allowances, rotation, revocation and an audit trail.",
+            },
+            {
+              term: "Public API",
+              description:
+                "The same engine the console uses, over HTTP and JSON, with a stability guarantee behind the response contract.",
+            },
+            {
+              term: "Usage",
+              description: "What has been spent, per key, per day, broken down by what ran.",
+            },
+            {
+              term: "SDK and CLI",
+              description:
+                "Typed clients and a terminal interface, so an analysis can go into a build step without writing an HTTP client first.",
+            },
+            {
+              term: "Webhooks",
+              description:
+                "Execution and change events delivered to an endpoint you control, signed and retried.",
+            },
+            {
+              term: "MCP server and skills",
+              description:
+                "Molthood's analyses as tools any compatible AI client can call, and workflows you can package and share.",
+            },
+          ],
+        },
+
+        { kind: "heading", id: "today", content: "What to use meanwhile" },
+        {
+          kind: "definitions",
+          items: [
+            {
+              term: "Console",
+              description:
+                "Run analyses, watch them stream, compare subjects and keep a history — everything the engine can do, with a browser.",
+            },
+            {
+              term: "Molthood Agent",
+              description:
+                "Ask in a sentence and get the same analyses back. See [Molthood Agent](/molthood-agent).",
+            },
+          ],
+        },
+        {
+          kind: "text",
+          content:
+            "Progress on each of the items above is tracked on the [roadmap](/roadmap), which is the page that changes when they move.",
+        },
+      ],
+    },
+    {
       slug: "security",
       title: "Security",
       description:

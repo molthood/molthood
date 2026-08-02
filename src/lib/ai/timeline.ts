@@ -87,32 +87,88 @@ export function planFor(intent: Intent): PlannedStep[] {
  * Replaces a permanent "Thinking…". It says which part is slow, which is the
  * only thing a reader waiting on a long run actually wants to know.
  */
-export function phaseLabel(intent: Intent, phase: "reasoning" | "tools" | "writing"): string {
-  if (phase === "tools") {
-    switch (intent) {
-      case "address":
-        return "Inspecting the contract…";
-      case "website":
-      case "project":
-        return "Reading documentation…";
-      case "repository":
-        return "Reading the repository…";
-      case "transaction":
-        return "Reading the transaction…";
-      case "chain":
-        return "Comparing market data…";
-      case "molthood":
-        return "Reading Molthood's documentation…";
-      case "artifact":
-        return "Assembling the file…";
-      default:
-        return "Gathering evidence…";
-    }
-  }
-  if (phase === "writing") {
-    return intent === "artifact" ? "Preparing the file…" : "Writing the answer…";
-  }
-  return "Thinking…";
+/**
+ * The live status line, as a sequence rather than a single label.
+ *
+ * Each phase of each kind of question has its own list, and the client walks
+ * it while that phase lasts. So a wallet question reads *Detecting wallet →
+ * Reading balances → Reading transfers*, and a file request reads *Planning
+ * the document → Writing content → Formatting*, and neither is ever the
+ * sequence the other one shows.
+ *
+ * Every line here describes work the request genuinely involves — this is a
+ * status line, not a progress bar, and it makes no claim about how far along
+ * anything is. What it must never do is narrate a step that could not happen
+ * for this kind of question at all.
+ */
+const PHASES: Record<Intent, { tools: string[]; writing: string[] }> = {
+  address: {
+    tools: [
+      "Detecting the subject…",
+      "Reading market data…",
+      "Checking liquidity…",
+      "Scanning holders…",
+      "Running security checks…",
+    ],
+    writing: ["Building the summary…", "Weighing the signals…", "Finalising…"],
+  },
+  transaction: {
+    tools: ["Locating the transaction…", "Reading the receipt…", "Decoding the call…"],
+    writing: ["Explaining what happened…", "Finalising…"],
+  },
+  repository: {
+    tools: ["Reading the project…", "Checking activity…", "Reviewing the licence…"],
+    writing: ["Judging maintenance…", "Preparing the answer…"],
+  },
+  website: {
+    tools: [
+      "Reading the website…",
+      "Analysing pages…",
+      "Understanding the documentation…",
+      "Checking domain records…",
+    ],
+    writing: ["Generating insights…", "Writing the report…"],
+  },
+  project: {
+    tools: ["Gathering published sources…", "Cross-checking claims…"],
+    writing: ["Writing the report…", "Finalising…"],
+  },
+  social: {
+    tools: ["Checking what is reachable…"],
+    writing: ["Preparing the answer…"],
+  },
+  chain: {
+    tools: ["Reading chain state…", "Comparing market data…"],
+    writing: ["Summarising the network…"],
+  },
+  thread: {
+    tools: ["Gathering the facts…"],
+    writing: ["Drafting the posts…", "Tightening each line…"],
+  },
+  artifact: {
+    tools: ["Gathering the material…"],
+    writing: [
+      "Planning the document…",
+      "Writing content…",
+      "Formatting…",
+      "Packaging the file…",
+    ],
+  },
+  molthood: {
+    tools: ["Searching Molthood's documentation…", "Reading the relevant pages…"],
+    writing: ["Answering from project knowledge…"],
+  },
+  general: {
+    tools: ["Gathering context…"],
+    writing: ["Preparing the answer…", "Finalising…"],
+  },
+};
+
+/** The whole sequence for a phase, which the client cycles through. */
+export function phaseSteps(intent: Intent, phase: "reasoning" | "tools" | "writing"): string[] {
+  if (phase === "reasoning") return ["Thinking…", "Working through it…"];
+  const entry = PHASES[intent] ?? PHASES.general;
+  return phase === "tools" ? entry.tools : entry.writing;
 }
 
 /** Engine task names, in the words a reader would use. */

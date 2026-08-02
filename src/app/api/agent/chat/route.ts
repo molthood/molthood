@@ -31,7 +31,7 @@ import {
   type AnalysisCard,
 } from "@/lib/ai/report";
 import { SYSTEM_PROMPT, briefing } from "@/lib/ai/system-prompt";
-import { phaseLabel, planFor, recordedSteps } from "@/lib/ai/timeline";
+import { phaseSteps, planFor, recordedSteps } from "@/lib/ai/timeline";
 import {
   TOOL_LABELS,
   TOOL_SCHEMAS,
@@ -215,7 +215,7 @@ export async function POST(request: Request) {
                 },
                 onReasoning: () =>
                   controller.enqueue(
-                    event({ type: "phase", label: phaseLabel(intent, "reasoning") }),
+                    event({ type: "phase", steps: phaseSteps(intent, "reasoning") }),
                   ),
               },
             });
@@ -295,7 +295,7 @@ export async function POST(request: Request) {
               event({ type: "tool", name: call.function.name, label, status: "running" }),
             );
             controller.enqueue(
-              event({ type: "phase", label: phaseLabel(intent, "tools") }),
+              event({ type: "phase", steps: phaseSteps(intent, "tools") }),
             );
 
             let args: Record<string, unknown> = {};
@@ -351,7 +351,7 @@ export async function POST(request: Request) {
         // rows, so the timeline reads as a sequence rather than a list that
         // filled in from both ends.
         controller.enqueue(
-          event({ type: "phase", label: phaseLabel(intent, "writing") }),
+          event({ type: "phase", steps: phaseSteps(intent, "writing") }),
         );
         controller.enqueue(
           event({

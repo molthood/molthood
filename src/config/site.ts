@@ -77,7 +77,6 @@ export type NavItem = {
  * open should look like a call to action, not like a fifth link.
  */
 export const mainNav: NavItem[] = [
-  { label: "Dashboard", href: DASHBOARD_URL },
   // Absolute, but not `external`: the same product on another path, so it
   // navigates in place rather than opening a tab with an outbound-link icon
   // promising somebody else's site.
