@@ -37,6 +37,14 @@ export const metadata: Metadata = {
     title: `${siteConfig.name} — ${siteConfig.tagline}`,
     description: siteConfig.description,
   },
+  // Ownership proof for Virtuals Protocol. It lives in the root layout rather
+  // than the site segment because a page that declares its own `openGraph` or
+  // `other` replaces the inherited object wholesale — the same trap that
+  // silently dropped the social cards once. Here it is inherited by every
+  // surface and cannot be knocked out by a child.
+  other: {
+    "virtual-protocol-site-verification": "0d277939f8d8215215fca1aeee067483",
+  },
 };
 
 export const viewport: Viewport = {
