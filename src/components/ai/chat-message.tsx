@@ -1,13 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  AlertTriangle,
-  Check,
-  Copy,
-  Loader2,
-  RefreshCw,
-} from "lucide-react";
+import { AlertTriangle, Check, Copy, RefreshCw } from "lucide-react";
 
 import {
   Actions,
@@ -18,6 +12,7 @@ import {
   ToolBadges,
 } from "@/components/ai/analysis";
 import { Markdown } from "@/components/ai/markdown";
+import { ThinkingLoader } from "@/components/ai/thinking-loader";
 import { LogoMark } from "@/components/brand/logo";
 import type { Message } from "@/hooks/use-molt-chat";
 
@@ -62,6 +57,12 @@ function ChatMessage({
 
   const empty = message.content.length === 0;
 
+  // The loader tracks the request, not the text. It stays up from send until
+  // `streaming` clears in the hook's `finally`, which is the only point at
+  // which the response is genuinely complete — an answer that has started
+  // arriving is still an answer in progress.
+  const loading = isLast && streaming && !message.error;
+
   return (
     <div className="flex gap-3">
       <LogoMark size={26} className="mt-0.5 hidden sm:block" />
@@ -71,14 +72,17 @@ function ChatMessage({
         <ToolBadges badges={message.badges ?? []} />
         <Cards cards={message.cards ?? []} />
 
-        {empty && !message.error ? (
-          <div className="text-muted flex items-center gap-2 text-sm font-medium">
-            <Loader2 className="size-3.5 animate-spin" />
-            Thinking…
-          </div>
-        ) : (
-          <Markdown content={message.content} />
-        )}
+        {/*
+          Two fixed slots, not a ternary.
+
+          A ternary would swap the loader out for the answer body the instant
+          the first token lands, which unmounts the <video> and ends playback.
+          Keeping each in its own child position means the loader element stays
+          at the same index for the whole stream, so React reconciles it in
+          place and the browser never restarts the clip.
+        */}
+        {loading ? <ThinkingLoader className="mb-4" /> : null}
+        {!empty ? <Markdown content={message.content} /> : null}
 
         {message.error ? (
           <div className="border-danger/40 bg-danger/10 mt-2 rounded-xl border px-3.5 py-3">
