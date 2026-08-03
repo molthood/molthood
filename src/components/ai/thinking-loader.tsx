@@ -38,26 +38,30 @@ function ThinkingLoaderBase({ className }: { className?: string }) {
 
   return (
     <div
-      className={cn("flex flex-col items-start gap-3", className)}
+      className={cn("text-muted flex items-center gap-2.5 text-sm font-medium", className)}
       role="status"
       aria-live="polite"
     >
-      <div className="w-full max-w-[176px] sm:max-w-[204px]">
-        <video
-          ref={ref}
-          src="/loader.mp4"
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="auto"
-          aria-hidden="true"
-          tabIndex={-1}
-          className="block aspect-square w-full bg-transparent object-contain [image-rendering:auto]"
-        />
-      </div>
-
-      <p className="text-muted text-sm font-medium">Thinking through your request&hellip;</p>
+      {/*
+        `screen` is what removes the black background without an alpha channel.
+        H.264 has no alpha, but screen blending is exact where the source is
+        black: 1-(1-0)(1-b) leaves the backdrop untouched, so only the mark and
+        its glow are added. It also means this sits correctly over the ambient
+        video behind the conversation rather than punching a dark square in it.
+      */}
+      <video
+        ref={ref}
+        src="/loader.mp4"
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        aria-hidden="true"
+        tabIndex={-1}
+        className="block size-6 shrink-0 bg-transparent object-contain [mix-blend-mode:screen]"
+      />
+      Thinking through your request&hellip;
     </div>
   );
 }

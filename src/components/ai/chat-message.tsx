@@ -81,7 +81,7 @@ function ChatMessage({
           at the same index for the whole stream, so React reconciles it in
           place and the browser never restarts the clip.
         */}
-        {loading ? <ThinkingLoader className="mb-4" /> : null}
+        {loading ? <ThinkingLoader className="mb-3" /> : null}
         {!empty ? <Markdown content={message.content} /> : null}
 
         {message.error ? (
