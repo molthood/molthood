@@ -36,6 +36,7 @@ from app.api.deps import EngineDep
 from app.api.v1.endpoints.execute import to_response
 from app.core.exceptions import MolthoodError, UnresolvableHostError
 from app.engine.engine import ExecutionEngine
+from app.engine.labels import redact_facts, redact_items
 from app.engine.router import AnalysisTarget
 from app.logging import get_logger
 from app.repositories.api_keys import KeyIdentity, get_api_key_store
@@ -93,6 +94,18 @@ async def _events(
     queue: asyncio.Queue[tuple[str, dict[str, Any]] | None] = asyncio.Queue(_QUEUE_SIZE)
 
     async def emit(event: str, payload: dict[str, Any]) -> None:
+        # `result` is redacted by `to_response` on the way out, but nothing was
+        # doing the same for `evidence_ready` — and that one arrives first and
+        # carries the findings the console renders immediately. Supplier names
+        # were visible for the whole length of an AI summary and then silently
+        # replaced when the run finished.
+        if event == "evidence_ready":
+            payload = {
+                **payload,
+                "facts": redact_facts(payload.get("facts")),
+                "evidence": redact_items(payload.get("evidence") or []),
+                "sources": redact_items(payload.get("sources") or []),
+            }
         await queue.put((event, payload))
 
     async def produce() -> None:

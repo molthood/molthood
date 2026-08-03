@@ -19,6 +19,7 @@ real meaning.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 #: Internal service name → the role it plays.
@@ -132,6 +133,36 @@ def _rename_key(key: str) -> str:
     ):
         renamed = re.sub(rf"(^|_){vendor}(_|$)", rf"\1{replacement}\2", renamed)
     return renamed
+
+
+#: Fields inside evidence and sources that are prose and get rewritten. `url`
+#: and `source_url` are deliberately absent: a hostname is an address, not a
+#: label, and rewriting one produced `https://robinhoodchain.Chain
+#: explorer.com/…` the last time it was attempted.
+PROSE_FIELDS = ("label", "detail", "reason", "value", "note")
+
+
+def redact_items(
+    items: Sequence[Mapping[str, object]],
+) -> list[dict[str, object]]:
+    """Strip supplier names from a list of evidence or source records.
+
+    Lives here rather than beside one response builder because there is more
+    than one way out of an analysis. `to_response` covers the REST routes and
+    the stream's final `result`, but the stream also emits `evidence_ready`
+    long before that — and it went out raw, so every console rendered supplier
+    names for the ten seconds an AI summary takes and then quietly swapped them
+    for roles once the run finished.
+    """
+    return [
+        {
+            key: describe_source(value)
+            if key in PROSE_FIELDS and isinstance(value, str)
+            else value
+            for key, value in item.items()
+        }
+        for item in items
+    ]
 
 
 def redact_facts(facts: Any) -> Any:

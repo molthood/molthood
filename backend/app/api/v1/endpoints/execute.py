@@ -11,7 +11,7 @@ work never happened — a rejected address costs nothing and must not bill.
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable
 
 from fastapi import APIRouter, Path, Query, status
 
@@ -19,7 +19,12 @@ from app.api.auth import CurrentKey
 from app.api.deps import EngineDep
 from app.core.exceptions import UnresolvableHostError
 from app.engine.context import ExecutionRequest
-from app.engine.labels import describe_service, describe_source, redact_facts
+from app.engine.labels import (
+    describe_service,
+    describe_source,
+    redact_facts,
+    redact_items,
+)
 from app.engine.result import ExecutionResult
 from app.repositories.api_keys import KeyIdentity, get_api_key_store
 from app.schemas.execution import ExecutionCreate, ExecutionResponse
@@ -37,27 +42,6 @@ ADDRESS_PATH = Path(
 #: Task fields exposed to clients. `output` is deliberately excluded — it
 #: duplicates `facts`, and repeating it would double the payload.
 _TASK_FIELDS = ("id", "sequence", "name", "agent_kind", "status", "duration_ms", "error")
-
-
-#: Fields inside evidence and sources that are prose and get rewritten. `url`
-#: and `source_url` are deliberately absent: a hostname is an address, not a
-#: label, and rewriting one produced `https://robinhoodchain.Chain
-#: explorer.com/…` the last time this was attempted.
-_PROSE_FIELDS = ("label", "detail", "reason", "value", "note")
-
-
-def _redact_items(
-    items: Sequence[Mapping[str, object]],
-) -> list[dict[str, object]]:
-    return [
-        {
-            key: describe_source(value)
-            if key in _PROSE_FIELDS and isinstance(value, str)
-            else value
-            for key, value in item.items()
-        }
-        for item in items
-    ]
 
 
 def to_response(result: ExecutionResult) -> ExecutionResponse:
@@ -94,8 +78,8 @@ def to_response(result: ExecutionResult) -> ExecutionResponse:
         ),
         summary_model=result.summary_model,
         facts=redact_facts(result.facts),
-        evidence=_redact_items(result.evidence),
-        sources=_redact_items(result.sources),
+        evidence=redact_items(result.evidence),
+        sources=redact_items(result.sources),
         stages=[stage.to_dict() for stage in result.stages],
         tasks=tasks,
         execution_time_ms=result.execution_time_ms,
