@@ -33,6 +33,20 @@ export const X_URL = "https://x.com/molthood_org";
 /** The handle alone, for the Twitter card's `site` and `creator` fields. */
 export const X_HANDLE = "@molthood_org";
 
+/**
+ * The official token, published so there is one address to check against.
+ *
+ * Impersonation is the ordinary attack on a launch: a lookalike contract, a
+ * screenshot of an address one character off. Putting the real one on the site
+ * turns "which is real" into a comparison rather than a guess, which is why it
+ * is stated in full rather than shortened for looks.
+ */
+export const TOKEN = {
+  symbol: "$MOLTHOOD",
+  address: "0xd0a99370cbe186dd5cbbe5ec40c1e8aa0b8ba491",
+  chain: "Robinhood Chain",
+} as const;
+
 export const siteConfig = {
   name: "Molthood",
   tagline: "AI Execution Agents for Robinhood Chain.",

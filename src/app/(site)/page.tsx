@@ -10,6 +10,7 @@ import { Hero } from "@/components/marketing/hero";
 import { AgentSection } from "@/components/marketing/agent-section";
 import { LiveSection } from "@/components/marketing/live-section";
 import { PipelineSection } from "@/components/marketing/pipeline-section";
+import { TokenBar } from "@/components/marketing/token-bar";
 import { SecuritySection } from "@/components/marketing/security-section";
 import { siteConfig } from "@/config/site";
 import { OG_BRAND } from "@/lib/seo";
@@ -42,6 +43,7 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <>
+      <TokenBar />
       <Hero />
       <LiveSection />
       <AgentSection />
